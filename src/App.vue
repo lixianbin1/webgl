@@ -1,5 +1,6 @@
 <template>
   <div id="svg"></div>
+  <div id="map"></div>
 </template>
 <script setup>
 import { ref,onMounted } from 'vue'
@@ -101,6 +102,31 @@ const init = () => {
   }
   initMap(0, 0); // 初始化地图
 
+  // 剪刀函数
+  function setScissorForElement(elem) {
+    const canvas = renderer.domElement;
+    const canvasRect = canvas.getBoundingClientRect();
+    const elemRect = elem.getBoundingClientRect();
+  
+    // 计算canvas的尺寸
+    const right = Math.min(elemRect.right, canvasRect.right) - canvasRect.left;
+    const left = Math.max(0, elemRect.left - canvasRect.left);
+    const bottom = Math.min(elemRect.bottom, canvasRect.bottom) - canvasRect.top;
+    const top = Math.max(0, elemRect.top - canvasRect.top);
+  
+    const width = Math.min(canvasRect.width, right - left);
+    const height = Math.min(canvasRect.height, bottom - top);
+  
+    // 设置剪函数以仅渲染一部分场景
+    const positiveYUpBottom = canvasRect.height - bottom;
+    renderer.setScissor(left, positiveYUpBottom, width, height);
+    renderer.setViewport(left, positiveYUpBottom, width, height);
+  
+    // 返回aspect
+    return width / height;
+  }
+
+
   //导入模型
   var texture = new THREE.TextureLoader().load( "./a1.png" );
   texture.wrapS = THREE.RepeatWrapping;
@@ -134,6 +160,7 @@ const init = () => {
 
 
   // 轨道控制相机
+  const view1Elem = document.querySelector('#svg');
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.mouseButtons = {
     LEFT:  THREE.MOUSE.PAN,   // 左键 → 平移
@@ -144,14 +171,67 @@ const init = () => {
   controls.dampingFactor = 0.05;
   controls.update();
 
+  // 可视化相机轨道
+  const cameraHelper = new THREE.CameraHelper(camera);
+  scene.add(cameraHelper);
+
   // 每帧动画
   (function animate() {
+    requestAnimationFrame( animate );
+    controls.update();
+    
+    // 启用剪刀函数
+    renderer.setScissorTest(true);
+    // 渲染主视野
+    {
+      const view1Elem = document.querySelector('#svg');
+      const aspect = setScissorForElement(view1Elem);
+      // 用计算出的aspect修改摄像机参数
+      camera.aspect = aspect;
+      camera.updateProjectionMatrix();
+      cameraHelper.update();
+ 
+      // 来原视野中不要绘制cameraHelper
+      cameraHelper.visible = false;
+ 
+ 
+      // 渲染
+      renderer.render(scene, camera);
+    }
+ 
 
-    const canvas = renderer.domElement;
-    camera.aspect = canvas.clientWidth / canvas.clientHeight;
-    camera.updateProjectionMatrix();
+    
+    // 渲染第二台摄像机
+    {
+      // 小地图相机
+      const camera2 = new THREE.PerspectiveCamera(
+        60,  // fov
+        2,   // aspect
+        0.1, // near
+        500, // far
+      );
+      camera2.position.set(40, 10, 30);
+      camera2.lookAt(0, 5, 0);
+      const view2Elem = document.querySelector('#map');
+      const controls2 = new OrbitControls(camera2, view2Elem);
+      controls2.target.set(0, 5, 0);
+      controls2.update();
+      const aspect = setScissorForElement(view2Elem);
+ 
+      // 调整aspect
+      camera2.aspect = aspect;
+      camera2.updateProjectionMatrix();
+      // 在第二台摄像机中绘制cameraHelper
+      cameraHelper.visible = true;
+      renderer.render(scene, camera2);
+    }
 
-      requestAnimationFrame( animate );
+
+    // const canvas = renderer.domElement;
+    // camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    // camera.updateProjectionMatrix();
+
+
       var target=controls.target
       let tarX,tarY
       if(Math.abs(target.x-0)>40){
@@ -173,8 +253,8 @@ const init = () => {
         tarY=0
       }
       initMap(tarX,tarY)
-      controls.update();
-      renderer.render( scene, camera );
+
+      // renderer.render( scene, camera );
     })()
 }
 
@@ -185,4 +265,12 @@ onMounted(() => {
 </script>
 
 <style scoped>
+#map{
+  width: 150px;
+  height: 150px;
+  top: 10px;
+  right: 10px;
+  border-radius: 50%;
+  position: absolute;
+}
 </style>
