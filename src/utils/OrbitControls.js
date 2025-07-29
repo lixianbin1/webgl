@@ -10,14 +10,38 @@ import {
 	Ray,
 	MathUtils
 } from 'three';
+
+/**
+ * Fires when the camera has been transformed by the controls.
+ *
+ * @event OrbitControls#change
+ * @type {Object}
+ */
 const _changeEvent = { type: 'change' };
+
+/**
+ * Fires when an interaction was initiated.
+ *
+ * @event OrbitControls#start
+ * @type {Object}
+ */
 const _startEvent = { type: 'start' };
+
+/**
+ * Fires when an interaction has finished.
+ *
+ * @event OrbitControls#end
+ * @type {Object}
+ */
 const _endEvent = { type: 'end' };
+
 const _ray = new Ray();
 const _plane = new Plane();
 const _TILT_LIMIT = Math.cos( 70 * MathUtils.DEG2RAD );
+
 const _v = new Vector3();
 const _twoPI = 2 * Math.PI;
+
 const _STATE = {
 	NONE: - 1,
 	ROTATE: 0,
@@ -30,42 +54,348 @@ const _STATE = {
 };
 const _EPS = 0.000001;
 
+
+/**
+ * Orbit controls allow the camera to orbit around a target.
+ *
+ * OrbitControls performs orbiting, dollying (zooming), and panning. Unlike {@link TrackballControls},
+ * it maintains the "up" direction `object.up` (+Y by default).
+ *
+ * - Orbit: Left mouse / touch: one-finger move.
+ * - Zoom: Middle mouse, or mousewheel / touch: two-finger spread or squish.
+ * - Pan: Right mouse, or left mouse + ctrl/meta/shiftKey, or arrow keys / touch: two-finger move.
+ *
+ * ```js
+ * const controls = new OrbitControls( camera, renderer.domElement );
+ *
+ * // controls.update() must be called after any manual changes to the camera's transform
+ * camera.position.set( 0, 20, 100 );
+ * controls.update();
+ *
+ * function animate() {
+ *
+ * 	// required if controls.enableDamping or controls.autoRotate are set to true
+ * 	controls.update();
+ *
+ * 	renderer.render( scene, camera );
+ *
+ * }
+ * ```
+ *
+ * @augments Controls
+ * @three_import import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+ */
 class OrbitControls extends Controls {
+
+	/**
+	 * Constructs a new controls instance.
+	 *
+	 * @param {Object3D} object - The object that is managed by the controls.
+	 * @param {?HTMLDOMElement} domElement - The HTML element used for event listeners.
+	 */
 	constructor( object, domElement = null ) {
+
 		super( object, domElement );
+
 		this.state = _STATE.NONE;
+
+		/**
+		 * The focus point of the controls, the `object` orbits around this.
+		 * It can be updated manually at any point to change the focus of the controls.
+		 *
+		 * @type {Vector3}
+		 */
 		this.target = new Vector3();
+
+		/**
+		 * The focus point of the `minTargetRadius` and `maxTargetRadius` limits.
+		 * It can be updated manually at any point to change the center of interest
+		 * for the `target`.
+		 *
+		 * @type {Vector3}
+		 */
 		this.cursor = new Vector3();
+
+		/**
+		 * How far you can dolly in (perspective camera only).
+		 *
+		 * @type {number}
+		 * @default 0
+		 */
 		this.minDistance = 0;
+
+		/**
+		 * How far you can dolly out (perspective camera only).
+		 *
+		 * @type {number}
+		 * @default Infinity
+		 */
 		this.maxDistance = Infinity;
+
+		/**
+		 * How far you can zoom in (orthographic camera only).
+		 *
+		 * @type {number}
+		 * @default 0
+		 */
 		this.minZoom = 0;
+
+		/**
+		 * How far you can zoom out (orthographic camera only).
+		 *
+		 * @type {number}
+		 * @default Infinity
+		 */
 		this.maxZoom = Infinity;
+
+		/**
+		 * How close you can get the target to the 3D `cursor`.
+		 *
+		 * @type {number}
+		 * @default 0
+		 */
 		this.minTargetRadius = 0;
+
+		/**
+		 * How far you can move the target from the 3D `cursor`.
+		 *
+		 * @type {number}
+		 * @default Infinity
+		 */
 		this.maxTargetRadius = Infinity;
+
+		/**
+		 * How far you can orbit vertically, lower limit. Range is `[0, Math.PI]` radians.
+		 *
+		 * @type {number}
+		 * @default 0
+		 */
 		this.minPolarAngle = 0;
+
+		/**
+		 * How far you can orbit vertically, upper limit. Range is `[0, Math.PI]` radians.
+		 *
+		 * @type {number}
+		 * @default Math.PI
+		 */
 		this.maxPolarAngle = Math.PI;
+
+		/**
+		 * How far you can orbit horizontally, lower limit. If set, the interval `[ min, max ]`
+		 * must be a sub-interval of `[ - 2 PI, 2 PI ]`, with `( max - min < 2 PI )`.
+		 *
+		 * @type {number}
+		 * @default -Infinity
+		 */
 		this.minAzimuthAngle = - Infinity;
+
+		/**
+		 * How far you can orbit horizontally, upper limit. If set, the interval `[ min, max ]`
+		 * must be a sub-interval of `[ - 2 PI, 2 PI ]`, with `( max - min < 2 PI )`.
+		 *
+		 * @type {number}
+		 * @default -Infinity
+		 */
 		this.maxAzimuthAngle = Infinity;
+
+		/**
+		 * Set to `true` to enable damping (inertia), which can be used to give a sense of weight
+		 * to the controls. Note that if this is enabled, you must call `update()` in your animation
+		 * loop.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
 		this.enableDamping = false;
+
+		/**
+		 * The damping inertia used if `enableDamping` is set to `true`.
+		 *
+		 * Note that for this to work, you must call `update()` in your animation loop.
+		 *
+		 * @type {number}
+		 * @default 0.05
+		 */
 		this.dampingFactor = 0.05;
+
+		/**
+		 * Enable or disable zooming (dollying) of the camera.
+		 *
+		 * @type {boolean}
+		 * @default true
+		 */
 		this.enableZoom = true;
+
+		/**
+		 * Speed of zooming / dollying.
+		 *
+		 * @type {number}
+		 * @default 1
+		 */
 		this.zoomSpeed = 1.0;
-		this.enableRotate =
+
+		/**
+		 * Enable or disable horizontal and vertical rotation of the camera.
+		 *
+		 * Note that it is possible to disable a single axis by setting the min and max of the
+		 * `minPolarAngle` or `minAzimuthAngle` to the same value, which will cause the vertical
+		 * or horizontal rotation to be fixed at that value.
+		 *
+		 * @type {boolean}
+		 * @default true
+		 */
+		this.enableRotate = true;
+
+		/**
+		 * Speed of rotation.
+		 *
+		 * @type {number}
+		 * @default 1
+		 */
+		this.rotateSpeed = 1.0;
+
+		/**
+		 * How fast to rotate the camera when the keyboard is used.
+		 *
+		 * @type {number}
+		 * @default 1
+		 */
 		this.keyRotateSpeed = 1.0;
+
+		/**
+		 * Enable or disable camera panning.
+		 *
+		 * @type {boolean}
+		 * @default true
+		 */
 		this.enablePan = true;
+
+		/**
+		 * Speed of panning.
+		 *
+		 * @type {number}
+		 * @default 1
+		 */
 		this.panSpeed = 1.0;
+
+		/**
+		 * Defines how the camera's position is translated when panning. If `true`, the camera pans
+		 * in screen space. Otherwise, the camera pans in the plane orthogonal to the camera's up
+		 * direction.
+		 *
+		 * @type {boolean}
+		 * @default true
+		 */
 		this.screenSpacePanning = true;
+
+		/**
+		 * How fast to pan the camera when the keyboard is used in
+		 * pixels per keypress.
+		 *
+		 * @type {number}
+		 * @default 7
+		 */
 		this.keyPanSpeed = 7.0;
+
+		/**
+		 * Setting this property to `true` allows to zoom to the cursor's position.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
 		this.zoomToCursor = false;
+
+		/**
+		 * Set to true to automatically rotate around the target
+		 *
+		 * Note that if this is enabled, you must call `update()` in your animation loop.
+		 * If you want the auto-rotate speed to be independent of the frame rate (the refresh
+		 * rate of the display), you must pass the time `deltaTime`, in seconds, to `update()`.
+		 *
+		 * @type {boolean}
+		 * @default false
+		 */
 		this.autoRotate = false;
+
+		/**
+		 * How fast to rotate around the target if `autoRotate` is `true`. The default  equates to 30 seconds
+		 * per orbit at 60fps.
+		 *
+		 * Note that if `autoRotate` is enabled, you must call `update()` in your animation loop.
+		 *
+		 * @type {number}
+		 * @default 2
+		 */
 		this.autoRotateSpeed = 2.0;
+
+		/**
+		 * This object contains references to the keycodes for controlling camera panning.
+		 *
+		 * ```js
+		 * controls.keys = {
+		 * 	LEFT: 'ArrowLeft', //left arrow
+		 * 	UP: 'ArrowUp', // up arrow
+		 * 	RIGHT: 'ArrowRight', // right arrow
+		 * 	BOTTOM: 'ArrowDown' // down arrow
+		 * }
+		 * ```
+		 * @type {Object}
+		 */
 		this.keys = { LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
+
+		/**
+		 * This object contains references to the mouse actions used by the controls.
+		 *
+		 * ```js
+		 * controls.mouseButtons = {
+		 * 	LEFT: THREE.MOUSE.ROTATE,
+		 * 	MIDDLE: THREE.MOUSE.DOLLY,
+		 * 	RIGHT: THREE.MOUSE.PAN
+		 * }
+		 * ```
+		 * @type {Object}
+		 */
 		this.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN };
+
+		/**
+		 * This object contains references to the touch actions used by the controls.
+		 *
+		 * ```js
+		 * controls.mouseButtons = {
+		 * 	ONE: THREE.TOUCH.ROTATE,
+		 * 	TWO: THREE.TOUCH.DOLLY_PAN
+		 * }
+		 * ```
+		 * @type {Object}
+		 */
 		this.touches = { ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN };
+
+		/**
+		 * Used internally by `saveState()` and `reset()`.
+		 *
+		 * @type {Vector3}
+		 */
 		this.target0 = this.target.clone();
+
+		/**
+		 * Used internally by `saveState()` and `reset()`.
+		 *
+		 * @type {Vector3}
+		 */
 		this.position0 = this.object.position.clone();
+
+		/**
+		 * Used internally by `saveState()` and `reset()`.
+		 *
+		 * @type {number}
+		 */
 		this.zoom0 = this.object.zoom;
+
+		// the target DOM element for key events
 		this._domElementKeyEvents = null;
+
+		// internals
+
 		this._lastPosition = new Vector3();
 		this._lastQuaternion = new Quaternion();
 		this._lastTargetPosition = new Vector3();
@@ -102,114 +432,219 @@ class OrbitControls extends Controls {
 
 		this._controlActive = false;
 
+		// event listeners
+
 		this._onPointerMove = onPointerMove.bind( this );
 		this._onPointerDown = onPointerDown.bind( this );
 		this._onPointerUp = onPointerUp.bind( this );
 		this._onContextMenu = onContextMenu.bind( this );
 		this._onMouseWheel = onMouseWheel.bind( this );
 		this._onKeyDown = onKeyDown.bind( this );
+
 		this._onTouchStart = onTouchStart.bind( this );
 		this._onTouchMove = onTouchMove.bind( this );
+
 		this._onMouseDown = onMouseDown.bind( this );
 		this._onMouseMove = onMouseMove.bind( this );
+
 		this._interceptControlDown = interceptControlDown.bind( this );
 		this._interceptControlUp = interceptControlUp.bind( this );
+
+		//
+
 		if ( this.domElement !== null ) {
+
 			this.connect( this.domElement );
+
 		}
+
 		this.update();
+
 	}
 
 	connect( element ) {
+
 		super.connect( element );
+
 		this.domElement.addEventListener( 'pointerdown', this._onPointerDown );
 		this.domElement.addEventListener( 'pointercancel', this._onPointerUp );
+
 		this.domElement.addEventListener( 'contextmenu', this._onContextMenu );
 		this.domElement.addEventListener( 'wheel', this._onMouseWheel, { passive: false } );
+
 		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
 		document.addEventListener( 'keydown', this._interceptControlDown, { passive: true, capture: true } );
+
 		this.domElement.style.touchAction = 'none'; // disable touch scroll
+
 	}
 
 	disconnect() {
+
 		this.domElement.removeEventListener( 'pointerdown', this._onPointerDown );
 		this.domElement.removeEventListener( 'pointermove', this._onPointerMove );
 		this.domElement.removeEventListener( 'pointerup', this._onPointerUp );
 		this.domElement.removeEventListener( 'pointercancel', this._onPointerUp );
+
 		this.domElement.removeEventListener( 'wheel', this._onMouseWheel );
 		this.domElement.removeEventListener( 'contextmenu', this._onContextMenu );
+
 		this.stopListenToKeyEvents();
+
 		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
 		document.removeEventListener( 'keydown', this._interceptControlDown, { capture: true } );
+
 		this.domElement.style.touchAction = 'auto';
+
 	}
 
 	dispose() {
+
 		this.disconnect();
+
 	}
+
+	/**
+	 * Get the current vertical rotation, in radians.
+	 *
+	 * @return {number} The current vertical rotation, in radians.
+	 */
 	getPolarAngle() {
+
 		return this._spherical.phi;
+
 	}
+
+	/**
+	 * Get the current horizontal rotation, in radians.
+	 *
+	 * @return {number} The current horizontal rotation, in radians.
+	 */
 	getAzimuthalAngle() {
+
 		return this._spherical.theta;
+
 	}
+
+	/**
+	 * Returns the distance from the camera to the target.
+	 *
+	 * @return {number} The distance from the camera to the target.
+	 */
 	getDistance() {
+
 		return this.object.position.distanceTo( this.target );
+
 	}
+
+	/**
+	 * Adds key event listeners to the given DOM element.
+	 * `window` is a recommended argument for using this method.
+	 *
+	 * @param {HTMLDOMElement} domElement - The DOM element
+	 */
 	listenToKeyEvents( domElement ) {
+
 		domElement.addEventListener( 'keydown', this._onKeyDown );
 		this._domElementKeyEvents = domElement;
+
 	}
+
+	/**
+	 * Removes the key event listener previously defined with `listenToKeyEvents()`.
+	 */
 	stopListenToKeyEvents() {
+
 		if ( this._domElementKeyEvents !== null ) {
+
 			this._domElementKeyEvents.removeEventListener( 'keydown', this._onKeyDown );
 			this._domElementKeyEvents = null;
+
 		}
+
 	}
+
+	/**
+	 * Save the current state of the controls. This can later be recovered with `reset()`.
+	 */
 	saveState() {
+
 		this.target0.copy( this.target );
 		this.position0.copy( this.object.position );
 		this.zoom0 = this.object.zoom;
+
 	}
+
+	/**
+	 * Reset the controls to their state from either the last time the `saveState()`
+	 * was called, or the initial state.
+	 */
 	reset() {
+
 		this.target.copy( this.target0 );
 		this.object.position.copy( this.position0 );
 		this.object.zoom = this.zoom0;
+
 		this.object.updateProjectionMatrix();
 		this.dispatchEvent( _changeEvent );
+
 		this.update();
+
 		this.state = _STATE.NONE;
+
 	}
 
 	update( deltaTime = null ) {
+
 		const position = this.object.position;
+
 		_v.copy( position ).sub( this.target );
+
 		// rotate offset to "y-axis-is-up" space
 		_v.applyQuaternion( this._quat );
+
 		// angle from z-axis around y-axis
 		this._spherical.setFromVector3( _v );
+
 		if ( this.autoRotate && this.state === _STATE.NONE ) {
+
 			this._rotateLeft( this._getAutoRotationAngle( deltaTime ) );
+
 		}
+
 		if ( this.enableDamping ) {
+
 			this._spherical.theta += this._sphericalDelta.theta * this.dampingFactor;
 			this._spherical.phi += this._sphericalDelta.phi * this.dampingFactor;
+
 		} else {
+
 			this._spherical.theta += this._sphericalDelta.theta;
 			this._spherical.phi += this._sphericalDelta.phi;
+
 		}
+
+		// restrict theta to be between desired limits
 
 		let min = this.minAzimuthAngle;
 		let max = this.maxAzimuthAngle;
+
 		if ( isFinite( min ) && isFinite( max ) ) {
+
 			if ( min < - Math.PI ) min += _twoPI; else if ( min > Math.PI ) min -= _twoPI;
+
 			if ( max < - Math.PI ) max += _twoPI; else if ( max > Math.PI ) max -= _twoPI;
+
 			if ( min <= max ) {
+
 				this._spherical.theta = Math.max( min, Math.min( max, this._spherical.theta ) );
+
 			} else {
+
 				this._spherical.theta = ( this._spherical.theta > ( min + max ) / 2 ) ?
 					Math.max( min, this._spherical.theta ) :
 					Math.min( max, this._spherical.theta );
+
 			}
 
 		}
@@ -626,7 +1061,6 @@ class OrbitControls extends Controls {
 
 	}
 
-	// 处理滚轮事件
 	_handleMouseWheel( event ) {
 
 		this._updateZoomParameters( event.clientX, event.clientY );
@@ -1333,58 +1767,94 @@ function onTouchStart( event ) {
 
 }
 
-// 触摸移动
 function onTouchMove( event ) {
+
 	this._trackPointer( event );
+
 	switch ( this.state ) {
+
 		case _STATE.TOUCH_ROTATE:
+
 			if ( this.enableRotate === false ) return;
+
 			this._handleTouchMoveRotate( event );
+
 			this.update();
+
 			break;
+
 		case _STATE.TOUCH_PAN:
+
 			if ( this.enablePan === false ) return;
+
 			this._handleTouchMovePan( event );
+
 			this.update();
+
 			break;
+
 		case _STATE.TOUCH_DOLLY_PAN:
+
 			if ( this.enableZoom === false && this.enablePan === false ) return;
+
 			this._handleTouchMoveDollyPan( event );
+
 			this.update();
+
 			break;
+
 		case _STATE.TOUCH_DOLLY_ROTATE:
+
 			if ( this.enableZoom === false && this.enableRotate === false ) return;
+
 			this._handleTouchMoveDollyRotate( event );
+
 			this.update();
+
 			break;
+
 		default:
+
 			this.state = _STATE.NONE;
+
 	}
+
 }
 
-// 
 function onContextMenu( event ) {
+
 	if ( this.enabled === false ) return;
+
 	event.preventDefault();
+
 }
 
-// 拦截控制向下
 function interceptControlDown( event ) {
+
 	if ( event.key === 'Control' ) {
+
 		this._controlActive = true;
-		const document = this.domElement.getRootNode();
+
+		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
+
 		document.addEventListener( 'keyup', this._interceptControlUp, { passive: true, capture: true } );
+
 	}
 
 }
 
-// 拦截控制向上
 function interceptControlUp( event ) {
+
 	if ( event.key === 'Control' ) {
+
 		this._controlActive = false;
-		const document = this.domElement.getRootNode(); 
+
+		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
+
 		document.removeEventListener( 'keyup', this._interceptControlUp, { passive: true, capture: true } );
+
 	}
+
 }
 
 export { OrbitControls };

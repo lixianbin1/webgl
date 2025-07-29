@@ -1,9 +1,12 @@
 <template>
-
+  <div id="svg"></div>
 </template>
 <script setup>
 import { ref,onMounted } from 'vue'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader.js';
+import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
+import { OrbitControls } from '@/utils/OrbitControls.js';
 import * as THREE from 'three';
 
 const init = () => { 
@@ -26,7 +29,7 @@ const init = () => {
   renderer.shadowMap.enabled = true  // 开启阴影映射
   renderer.setClearColor(0x000000);  // 设置清除色
   renderer.setSize(window.innerWidth, window.innerHeight); // 画布尺寸
-  document.body.appendChild(renderer.domElement); // 挂载
+  document.getElementById('svg').appendChild(renderer.domElement); // 挂载
 
   // 辅助显示:XYZ 轴：红色 X，绿色 Y，蓝色 Z，每轴长度 80
   const axesHelper = new THREE.AxesHelper(80);
@@ -98,6 +101,38 @@ const init = () => {
   }
   initMap(0, 0); // 初始化地图
 
+  //导入模型
+  var texture = new THREE.TextureLoader().load( "./a1.png" );
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.repeat.set( 4, 4 );
+  var mtlLoader = new MTLLoader()
+  var objLoader=new OBJLoader()
+    mtlLoader.setPath('obj/')
+    mtlLoader.load('room1.mtl',function(materials){
+      materials.preload();
+      objLoader.setMaterials(materials)
+      objLoader.setPath('obj/')
+      objLoader.load('room1.obj',function(object){
+        object.traverse(function(child) {
+          if(child instanceof THREE.Mesh) {
+            child.material.transparent=true;
+            child.receiveShadow = true;//接收阴影
+            child.castShadow = true;
+            child.material.map = texture;
+          }
+        })
+        object.position.set(0,-6,0)
+        object.transparent=true;
+        object.opacity=0.5
+        scene.add(object);
+        renderer.render(scene,camera);
+      },undefined,function(error){
+        console.log(error)
+      });
+    });
+
+
   // 轨道控制相机
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.mouseButtons = {
@@ -111,13 +146,18 @@ const init = () => {
 
   // 每帧动画
   (function animate() {
+
+    const canvas = renderer.domElement;
+    camera.aspect = canvas.clientWidth / canvas.clientHeight;
+    camera.updateProjectionMatrix();
+
       requestAnimationFrame( animate );
       var target=controls.target
       let tarX,tarY
       if(Math.abs(target.x-0)>40){
         if(target.x>0){
           tarX=Math.ceil((target.x-40)/80)
-        }else{
+        }else{s
           tarX=Math.floor((target.x+40)/80)
         }
       }else{
