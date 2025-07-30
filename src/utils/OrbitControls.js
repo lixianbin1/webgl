@@ -12,36 +12,31 @@ import {
 } from 'three';
 
 /**
- * Fires when the camera has been transformed by the controls.
- *
+ * 当相机被控制器改变时触发
  * @event OrbitControls#change
- * @type {Object}
  */
 const _changeEvent = { type: 'change' };
 
 /**
- * Fires when an interaction was initiated.
- *
+ * 当交互开始时触发
  * @event OrbitControls#start
- * @type {Object}
  */
 const _startEvent = { type: 'start' };
 
 /**
- * Fires when an interaction has finished.
- *
+ * 当交互结束时触发
  * @event OrbitControls#end
- * @type {Object}
  */
 const _endEvent = { type: 'end' };
 
+// 内部工具
 const _ray = new Ray();
 const _plane = new Plane();
 const _TILT_LIMIT = Math.cos( 70 * MathUtils.DEG2RAD );
-
 const _v = new Vector3();
 const _twoPI = 2 * Math.PI;
 
+// 控制器状态
 const _STATE = {
 	NONE: - 1,
 	ROTATE: 0,
@@ -54,427 +49,132 @@ const _STATE = {
 };
 const _EPS = 0.000001;
 
-
-/**
- * Orbit controls allow the camera to orbit around a target.
- *
- * OrbitControls performs orbiting, dollying (zooming), and panning. Unlike {@link TrackballControls},
- * it maintains the "up" direction `object.up` (+Y by default).
- *
- * - Orbit: Left mouse / touch: one-finger move.
- * - Zoom: Middle mouse, or mousewheel / touch: two-finger spread or squish.
- * - Pan: Right mouse, or left mouse + ctrl/meta/shiftKey, or arrow keys / touch: two-finger move.
- *
- * ```js
- * const controls = new OrbitControls( camera, renderer.domElement );
- *
- * // controls.update() must be called after any manual changes to the camera's transform
- * camera.position.set( 0, 20, 100 );
- * controls.update();
- *
- * function animate() {
- *
- * 	// required if controls.enableDamping or controls.autoRotate are set to true
- * 	controls.update();
- *
- * 	renderer.render( scene, camera );
- *
- * }
- * ```
- *
- * @augments Controls
- * @three_import import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
- */
 class OrbitControls extends Controls {
-
-	/**
-	 * Constructs a new controls instance.
-	 *
-	 * @param {Object3D} object - The object that is managed by the controls.
-	 * @param {?HTMLDOMElement} domElement - The HTML element used for event listeners.
-	 */
 	constructor( object, domElement = null ) {
-
 		super( object, domElement );
-
 		this.state = _STATE.NONE;
 
-		/**
-		 * The focus point of the controls, the `object` orbits around this.
-		 * It can be updated manually at any point to change the focus of the controls.
-		 *
-		 * @type {Vector3}
-		 */
+		/* 相机围绕的目标点 */
 		this.target = new Vector3();
 
-		/**
-		 * The focus point of the `minTargetRadius` and `maxTargetRadius` limits.
-		 * It can be updated manually at any point to change the center of interest
-		 * for the `target`.
-		 *
-		 * @type {Vector3}
-		 */
+		/* 用于限制 target 的参考点 */
 		this.cursor = new Vector3();
 
-		/**
-		 * How far you can dolly in (perspective camera only).
-		 *
-		 * @type {number}
-		 * @default 0
-		 */
+		/* 最小/最大推拉距离（透视相机） */
 		this.minDistance = 0;
-
-		/**
-		 * How far you can dolly out (perspective camera only).
-		 *
-		 * @type {number}
-		 * @default Infinity
-		 */
 		this.maxDistance = Infinity;
 
-		/**
-		 * How far you can zoom in (orthographic camera only).
-		 *
-		 * @type {number}
-		 * @default 0
-		 */
+		/* 最小/最大缩放级别（正交相机） */
 		this.minZoom = 0;
-
-		/**
-		 * How far you can zoom out (orthographic camera only).
-		 *
-		 * @type {number}
-		 * @default Infinity
-		 */
 		this.maxZoom = Infinity;
 
-		/**
-		 * How close you can get the target to the 3D `cursor`.
-		 *
-		 * @type {number}
-		 * @default 0
-		 */
+		/* 最小/最大 target 半径限制 */
 		this.minTargetRadius = 0;
-
-		/**
-		 * How far you can move the target from the 3D `cursor`.
-		 *
-		 * @type {number}
-		 * @default Infinity
-		 */
 		this.maxTargetRadius = Infinity;
 
-		/**
-		 * How far you can orbit vertically, lower limit. Range is `[0, Math.PI]` radians.
-		 *
-		 * @type {number}
-		 * @default 0
-		 */
+		/* 垂直旋转上下限（弧度） */
 		this.minPolarAngle = 0;
-
-		/**
-		 * How far you can orbit vertically, upper limit. Range is `[0, Math.PI]` radians.
-		 *
-		 * @type {number}
-		 * @default Math.PI
-		 */
 		this.maxPolarAngle = Math.PI;
 
-		/**
-		 * How far you can orbit horizontally, lower limit. If set, the interval `[ min, max ]`
-		 * must be a sub-interval of `[ - 2 PI, 2 PI ]`, with `( max - min < 2 PI )`.
-		 *
-		 * @type {number}
-		 * @default -Infinity
-		 */
+		/* 水平旋转左右限（弧度） */
 		this.minAzimuthAngle = - Infinity;
-
-		/**
-		 * How far you can orbit horizontally, upper limit. If set, the interval `[ min, max ]`
-		 * must be a sub-interval of `[ - 2 PI, 2 PI ]`, with `( max - min < 2 PI )`.
-		 *
-		 * @type {number}
-		 * @default -Infinity
-		 */
 		this.maxAzimuthAngle = Infinity;
 
-		/**
-		 * Set to `true` to enable damping (inertia), which can be used to give a sense of weight
-		 * to the controls. Note that if this is enabled, you must call `update()` in your animation
-		 * loop.
-		 *
-		 * @type {boolean}
-		 * @default false
-		 */
+		/* 阻尼相关 */
 		this.enableDamping = false;
-
-		/**
-		 * The damping inertia used if `enableDamping` is set to `true`.
-		 *
-		 * Note that for this to work, you must call `update()` in your animation loop.
-		 *
-		 * @type {number}
-		 * @default 0.05
-		 */
 		this.dampingFactor = 0.05;
 
-		/**
-		 * Enable or disable zooming (dollying) of the camera.
-		 *
-		 * @type {boolean}
-		 * @default true
-		 */
+		/** 缩放相关 */
 		this.enableZoom = true;
-
-		/**
-		 * Speed of zooming / dollying.
-		 *
-		 * @type {number}
-		 * @default 1
-		 */
 		this.zoomSpeed = 1.0;
 
-		/**
-		 * Enable or disable horizontal and vertical rotation of the camera.
-		 *
-		 * Note that it is possible to disable a single axis by setting the min and max of the
-		 * `minPolarAngle` or `minAzimuthAngle` to the same value, which will cause the vertical
-		 * or horizontal rotation to be fixed at that value.
-		 *
-		 * @type {boolean}
-		 * @default true
-		 */
+		/** 旋转相关 */
 		this.enableRotate = true;
-
-		/**
-		 * Speed of rotation.
-		 *
-		 * @type {number}
-		 * @default 1
-		 */
 		this.rotateSpeed = 1.0;
-
-		/**
-		 * How fast to rotate the camera when the keyboard is used.
-		 *
-		 * @type {number}
-		 * @default 1
-		 */
 		this.keyRotateSpeed = 1.0;
 
-		/**
-		 * Enable or disable camera panning.
-		 *
-		 * @type {boolean}
-		 * @default true
-		 */
+		/** 平移相关 */
 		this.enablePan = true;
-
-		/**
-		 * Speed of panning.
-		 *
-		 * @type {number}
-		 * @default 1
-		 */
 		this.panSpeed = 1.0;
-
-		/**
-		 * Defines how the camera's position is translated when panning. If `true`, the camera pans
-		 * in screen space. Otherwise, the camera pans in the plane orthogonal to the camera's up
-		 * direction.
-		 *
-		 * @type {boolean}
-		 * @default true
-		 */
 		this.screenSpacePanning = true;
-
-		/**
-		 * How fast to pan the camera when the keyboard is used in
-		 * pixels per keypress.
-		 *
-		 * @type {number}
-		 * @default 7
-		 */
 		this.keyPanSpeed = 7.0;
 
-		/**
-		 * Setting this property to `true` allows to zoom to the cursor's position.
-		 *
-		 * @type {boolean}
-		 * @default false
-		 */
+		/** 缩放到光标位置 */
 		this.zoomToCursor = false;
 
-		/**
-		 * Set to true to automatically rotate around the target
-		 *
-		 * Note that if this is enabled, you must call `update()` in your animation loop.
-		 * If you want the auto-rotate speed to be independent of the frame rate (the refresh
-		 * rate of the display), you must pass the time `deltaTime`, in seconds, to `update()`.
-		 *
-		 * @type {boolean}
-		 * @default false
-		 */
+		/** 自动旋转 */
 		this.autoRotate = false;
-
-		/**
-		 * How fast to rotate around the target if `autoRotate` is `true`. The default  equates to 30 seconds
-		 * per orbit at 60fps.
-		 *
-		 * Note that if `autoRotate` is enabled, you must call `update()` in your animation loop.
-		 *
-		 * @type {number}
-		 * @default 2
-		 */
 		this.autoRotateSpeed = 2.0;
 
-		/**
-		 * This object contains references to the keycodes for controlling camera panning.
-		 *
-		 * ```js
-		 * controls.keys = {
-		 * 	LEFT: 'ArrowLeft', //left arrow
-		 * 	UP: 'ArrowUp', // up arrow
-		 * 	RIGHT: 'ArrowRight', // right arrow
-		 * 	BOTTOM: 'ArrowDown' // down arrow
-		 * }
-		 * ```
-		 * @type {Object}
-		 */
+		/** 键盘映射 */
 		this.keys = { LEFT: 'ArrowLeft', UP: 'ArrowUp', RIGHT: 'ArrowRight', BOTTOM: 'ArrowDown' };
 
-		/**
-		 * This object contains references to the mouse actions used by the controls.
-		 *
-		 * ```js
-		 * controls.mouseButtons = {
-		 * 	LEFT: THREE.MOUSE.ROTATE,
-		 * 	MIDDLE: THREE.MOUSE.DOLLY,
-		 * 	RIGHT: THREE.MOUSE.PAN
-		 * }
-		 * ```
-		 * @type {Object}
-		 */
+		/** 鼠标映射 */
 		this.mouseButtons = { LEFT: MOUSE.ROTATE, MIDDLE: MOUSE.DOLLY, RIGHT: MOUSE.PAN };
 
-		/**
-		 * This object contains references to the touch actions used by the controls.
-		 *
-		 * ```js
-		 * controls.mouseButtons = {
-		 * 	ONE: THREE.TOUCH.ROTATE,
-		 * 	TWO: THREE.TOUCH.DOLLY_PAN
-		 * }
-		 * ```
-		 * @type {Object}
-		 */
+		/** 触摸映射 */
 		this.touches = { ONE: TOUCH.ROTATE, TWO: TOUCH.DOLLY_PAN };
 
-		/**
-		 * Used internally by `saveState()` and `reset()`.
-		 *
-		 * @type {Vector3}
-		 */
+		// 用于 saveState / reset
 		this.target0 = this.target.clone();
-
-		/**
-		 * Used internally by `saveState()` and `reset()`.
-		 *
-		 * @type {Vector3}
-		 */
 		this.position0 = this.object.position.clone();
-
-		/**
-		 * Used internally by `saveState()` and `reset()`.
-		 *
-		 * @type {number}
-		 */
 		this.zoom0 = this.object.zoom;
 
-		// the target DOM element for key events
+		// 内部状态
 		this._domElementKeyEvents = null;
-
-		// internals
-
 		this._lastPosition = new Vector3();
 		this._lastQuaternion = new Quaternion();
 		this._lastTargetPosition = new Vector3();
-
-		// so camera.up is the orbit axis
 		this._quat = new Quaternion().setFromUnitVectors( object.up, new Vector3( 0, 1, 0 ) );
 		this._quatInverse = this._quat.clone().invert();
-
-		// current position in spherical coordinates
 		this._spherical = new Spherical();
 		this._sphericalDelta = new Spherical();
-
 		this._scale = 1;
 		this._panOffset = new Vector3();
-
 		this._rotateStart = new Vector2();
 		this._rotateEnd = new Vector2();
 		this._rotateDelta = new Vector2();
-
 		this._panStart = new Vector2();
 		this._panEnd = new Vector2();
 		this._panDelta = new Vector2();
-
 		this._dollyStart = new Vector2();
 		this._dollyEnd = new Vector2();
 		this._dollyDelta = new Vector2();
-
 		this._dollyDirection = new Vector3();
 		this._mouse = new Vector2();
 		this._performCursorZoom = false;
-
 		this._pointers = [];
 		this._pointerPositions = {};
-
 		this._controlActive = false;
 
-		// event listeners
-
+		// 绑定事件
 		this._onPointerMove = onPointerMove.bind( this );
 		this._onPointerDown = onPointerDown.bind( this );
 		this._onPointerUp = onPointerUp.bind( this );
 		this._onContextMenu = onContextMenu.bind( this );
 		this._onMouseWheel = onMouseWheel.bind( this );
 		this._onKeyDown = onKeyDown.bind( this );
-
 		this._onTouchStart = onTouchStart.bind( this );
 		this._onTouchMove = onTouchMove.bind( this );
-
 		this._onMouseDown = onMouseDown.bind( this );
 		this._onMouseMove = onMouseMove.bind( this );
-
 		this._interceptControlDown = interceptControlDown.bind( this );
 		this._interceptControlUp = interceptControlUp.bind( this );
 
-		//
-
 		if ( this.domElement !== null ) {
-
 			this.connect( this.domElement );
-
 		}
-
 		this.update();
-
 	}
 
 	connect( element ) {
-
 		super.connect( element );
-
 		this.domElement.addEventListener( 'pointerdown', this._onPointerDown );
 		this.domElement.addEventListener( 'pointercancel', this._onPointerUp );
-
 		this.domElement.addEventListener( 'contextmenu', this._onContextMenu );
 		this.domElement.addEventListener( 'wheel', this._onMouseWheel, { passive: false } );
-
 		const document = this.domElement.getRootNode(); // offscreen canvas compatibility
 		document.addEventListener( 'keydown', this._interceptControlDown, { passive: true, capture: true } );
-
 		this.domElement.style.touchAction = 'none'; // disable touch scroll
 
 	}
@@ -499,20 +199,12 @@ class OrbitControls extends Controls {
 	}
 
 	dispose() {
-
 		this.disconnect();
-
 	}
 
-	/**
-	 * Get the current vertical rotation, in radians.
-	 *
-	 * @return {number} The current vertical rotation, in radians.
-	 */
+	/** 获取当前垂直旋转角（弧度） */
 	getPolarAngle() {
-
 		return this._spherical.phi;
-
 	}
 
 	/**
@@ -856,10 +548,9 @@ class OrbitControls extends Controls {
 
 	}
 
+	// 改变观察角度
 	_rotateUp( angle ) {
-
 		this._sphericalDelta.phi -= angle;
-
 	}
 
 	_panLeft( distance, objectMatrix ) {
@@ -925,34 +616,24 @@ class OrbitControls extends Controls {
 
 	}
 
+	// 拉远距离感
 	_dollyOut( dollyScale ) {
-
 		if ( this.object.isPerspectiveCamera || this.object.isOrthographicCamera ) {
-
 			this._scale /= dollyScale;
-
 		} else {
-
 			console.warn( 'WARNING: OrbitControls.js encountered an unknown camera type - dolly/zoom disabled.' );
 			this.enableZoom = false;
-
 		}
-
 	}
 
+	// 拉近距离感
 	_dollyIn( dollyScale ) {
-
 		if ( this.object.isPerspectiveCamera || this.object.isOrthographicCamera ) {
-
 			this._scale *= dollyScale;
-
 		} else {
-
 			console.warn( 'WARNING: OrbitControls.js encountered an unknown camera type - dolly/zoom disabled.' );
 			this.enableZoom = false;
-
 		}
-
 	}
 
 	_updateZoomParameters( x, y ) {
@@ -1002,27 +683,21 @@ class OrbitControls extends Controls {
 	}
 
 	_handleMouseDownPan( event ) {
-
+		
 		this._panStart.set( event.clientX, event.clientY );
 
 	}
 
+	// 鼠标旋转
 	_handleMouseMoveRotate( event ) {
-
 		this._rotateEnd.set( event.clientX, event.clientY );
-
 		this._rotateDelta.subVectors( this._rotateEnd, this._rotateStart ).multiplyScalar( this.rotateSpeed );
-
 		const element = this.domElement;
-
-		this._rotateLeft( _twoPI * this._rotateDelta.x / element.clientHeight ); // yes, height
-
-		this._rotateUp( _twoPI * this._rotateDelta.y / element.clientHeight );
-
+		this._rotateLeft( _twoPI * this._rotateDelta.x / element.clientHeight );
+		// 注释掉：鼠标旋转上下视角变化
+		// this._rotateUp( _twoPI * this._rotateDelta.y / element.clientHeight );
 		this._rotateStart.copy( this._rotateEnd );
-
 		this.update();
-
 	}
 
 	_handleMouseMoveDolly( event ) {
@@ -1061,22 +736,18 @@ class OrbitControls extends Controls {
 
 	}
 
+	// 滚轮事件
 	_handleMouseWheel( event ) {
-
+		console.log( '鼠标滚轮事件' );
 		this._updateZoomParameters( event.clientX, event.clientY );
-
 		if ( event.deltaY < 0 ) {
-
-			this._dollyIn( this._getZoomScale( event.deltaY ) );
-
+			// this._dollyIn( this._getZoomScale( event.deltaY ) );
+			this._rotateUp( - Math.PI/180 )
 		} else if ( event.deltaY > 0 ) {
-
-			this._dollyOut( this._getZoomScale( event.deltaY ) );
-
+			// this._dollyOut( this._getZoomScale( event.deltaY ) );
+			this._rotateUp( Math.PI/180 )
 		}
-
 		this.update();
-
 	}
 
 	_handleKeyDown( event ) {
@@ -1533,100 +1204,57 @@ function onPointerUp( event ) {
 }
 
 function onMouseDown( event ) {
-
 	let mouseAction;
-
+	// 区分鼠标按键
 	switch ( event.button ) {
-
 		case 0:
-
 			mouseAction = this.mouseButtons.LEFT;
 			break;
-
 		case 1:
-
 			mouseAction = this.mouseButtons.MIDDLE;
 			break;
-
 		case 2:
-
 			mouseAction = this.mouseButtons.RIGHT;
 			break;
-
 		default:
-
 			mouseAction = - 1;
-
 	}
 
+	// 获取鼠标动作
 	switch ( mouseAction ) {
-
-		case MOUSE.DOLLY:
-
+		case MOUSE.DOLLY: // 滚轮
 			if ( this.enableZoom === false ) return;
-
 			this._handleMouseDownDolly( event );
-
 			this.state = _STATE.DOLLY;
-
 			break;
-
-		case MOUSE.ROTATE:
-
+		case MOUSE.ROTATE: // 旋转
 			if ( event.ctrlKey || event.metaKey || event.shiftKey ) {
-
 				if ( this.enablePan === false ) return;
-
 				this._handleMouseDownPan( event );
-
 				this.state = _STATE.PAN;
-
 			} else {
-
 				if ( this.enableRotate === false ) return;
-
 				this._handleMouseDownRotate( event );
-
 				this.state = _STATE.ROTATE;
-
 			}
-
 			break;
-
-		case MOUSE.PAN:
-
+		case MOUSE.PAN: // 平移
 			if ( event.ctrlKey || event.metaKey || event.shiftKey ) {
-
 				if ( this.enableRotate === false ) return;
-
 				this._handleMouseDownRotate( event );
-
 				this.state = _STATE.ROTATE;
-
 			} else {
-
 				if ( this.enablePan === false ) return;
-
 				this._handleMouseDownPan( event );
-
 				this.state = _STATE.PAN;
-
 			}
-
 			break;
-
 		default:
-
 			this.state = _STATE.NONE;
-
 	}
-
 	if ( this.state !== _STATE.NONE ) {
-
 		this.dispatchEvent( _startEvent );
-
 	}
-
 }
 
 function onMouseMove( event ) {
