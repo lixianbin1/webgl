@@ -13,6 +13,8 @@ import * as THREE from 'three';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 
 const init = () => {
+  const view1Elem = document.querySelector('#svg');
+  const view2Elem = document.querySelector('#map');
   // 创建场景实例
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xa0a0a0);  //设置场景背景色
@@ -38,7 +40,9 @@ const init = () => {
   const axesHelper = new THREE.AxesHelper(80);
   scene.add(axesHelper);
 
-  // 光照（DirectionalLight）
+  /* 光照（DirectionalLight）*/
+  const ambient = new THREE.AmbientLight(0xffffff, 0.3); // 环境光
+  scene.add(ambient);
   const light = new THREE.DirectionalLight(0xffffff, 0.8); // 平行光
   const lightC = 40; // 阴影相机半宽
   light.position.set(20, 40, 20);
@@ -62,28 +66,22 @@ const init = () => {
   // 自定义地图
   const size = 20; // 地格大小
   const length = 4 // 地图长度
-  const MAPS=[]
-  function initMap(x, y) {
-    for (let i = - length; i <= length; i++) {
-      for (let k = - length; k <= length; k++) {
-        let has = false;
-        const xy = `${i + x},${k + y}`; // 字符串化坐标作为唯一标识
-        // 判断是否已存在
-        for (const j in MAPS) {
-          if (MAPS[j] === xy) {
-            has = true;
-            break;
-          }
-        }
-        if (!has) {
-          MAPS.push(xy);                // 记录已创建
-          iniPlane(size * (i + x), 0, size * (k + y)); // 生成地面
+  const chunk = 4;
+  const MAPS = new Set()
+  function initMap(cx, cz, length = 10) {
+    const newKeys = [];
+    for (let dx = -length; dx <= length; dx++) {
+      for (let dz = -length; dz <= length; dz++) {
+        const key = `${cx + dx},${cz + dz}`;
+        if (!MAPS.has(key)) {
+          MAPS.add(key);
+          newKeys.push([cx + dx, cz + dz]);
         }
       }
     }
+    // 批量创建（可选）
+    newKeys.forEach(([x, z]) => iniPlane(x * size, 0, z * size));
   }
-
-
 
   // 自定义地板
   function iniPlane(x, y, z) {
@@ -96,8 +94,8 @@ const init = () => {
         map: texture,
         transparent: true,
         alphaTest: 0.1,
+        depthWrite: false,
       });
-
       const planeGeo = new THREE.PlaneGeometry(size, size); //地板大小
       const plane = new THREE.Mesh(planeGeo, material);
       plane.receiveShadow = true; // 接收阴影
@@ -112,8 +110,8 @@ const init = () => {
       scene.add(plane);
       scene.add(grid);
     })
-
   }
+
   initMap(0, 0); // 初始化地图
 
   // 剪刀函数
@@ -199,6 +197,9 @@ const init = () => {
   gui.add(camera,'far',0.1,1000).name('远裁剪面');
   gui.add(controls,'enableDamping').name('阻尼');
   gui.add(controls,'dampingFactor',0.1,1).name('阻尼系数');
+  gui.add({ showHelper: true }, 'showHelper')
+   .name('阴影相机范围')
+   .onChange(v => { helper.visible = v; });
 
 /* 小地图相机 */
   const mini_camera = new THREE.PerspectiveCamera(
@@ -221,7 +222,6 @@ const init = () => {
     renderer.setScissorTest(true); //开启裁剪
     // 渲染主视野
     {
-      const view1Elem = document.querySelector('#svg');
       const aspect = setScissorForElement(view1Elem);
       // 用计算出的aspect修改摄像机参数
       camera.aspect = aspect;
@@ -231,12 +231,8 @@ const init = () => {
       // 渲染
       renderer.render(scene, camera);
     }
- 
-
-    
     // 渲染第二台摄像机
     {
-      const view2Elem = document.querySelector('#map');
       const aspect = setScissorForElement(view2Elem);
  
       // 调整aspect
