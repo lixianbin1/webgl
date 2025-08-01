@@ -21,8 +21,8 @@ const init = () => {
   scene.fog = new THREE.Fog(0xa0a0a0, 80, 120);  //添加雾效
 
   // 透视相机：视野 75°、宽高比（窗口宽高比）、近平面 0.1、远平面 1000
-  const camera = new THREE.PerspectiveCamera(75,window.innerWidth / window.innerHeight,0.1,500);
-  const lengthX = 0, lengthZ = 0, lengthY = 50; //相机初始位置
+  const camera = new THREE.PerspectiveCamera(120,window.innerWidth / window.innerHeight,0.1,500);
+  const lengthX = 0, lengthZ = 0, lengthY = 80; //相机初始位置
   camera.position.set(lengthX, lengthY, lengthZ);
   camera.lookAt(0, 0, 0); //让相机看向原点
 
@@ -67,6 +67,7 @@ const init = () => {
   const size = 20; // 地格大小
   const length = 4 // 地图长度
   const chunk = 4;
+
   const MAPS = new Set()
   function initMap(cx, cz, length = 10) {
     const newKeys = [];
@@ -85,21 +86,31 @@ const init = () => {
 
   // 自定义地板
   function iniPlane(x, y, z) {
+    /* 0. 底层白色地面（整块接收阴影） */
+    const baseGeo = new THREE.PlaneGeometry(size, size)
+    baseGeo.rotateX(-Math.PI / 2)
+    const baseMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
+    const base = new THREE.Mesh(baseGeo, baseMat)
+    base.receiveShadow = true
+    base.position.set(x, -0.01, z);
+    scene.add(base)
+
     const loader = new THREE.TextureLoader();
     loader.load('/map/grass.png', (texture) => {
       // 设置重复
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
       texture.repeat.set(20, 20);   // 20×20 个小贴图拼满
-      const material = new THREE.MeshToonMaterial({
+      const material = new THREE.MeshBasicMaterial({
         map: texture,
         transparent: true,
         alphaTest: 0.1,
         depthWrite: false,
       });
+      
       const planeGeo = new THREE.PlaneGeometry(size, size); //地板大小
       const plane = new THREE.Mesh(planeGeo, material);
-      plane.receiveShadow = true; // 接收阴影
       plane.position.set(x, y, z);
+      plane.receiveShadow = true
       plane.rotation.x = - 0.5 * Math.PI; // 旋转 90° 使平面水平
 
       // 网格辅助线
@@ -180,8 +191,8 @@ const init = () => {
   };
   controls.screenSpacePanning = false; // 禁止y轴平移
   controls.enableDamping = true;
-  controls.minPolarAngle= Math.PI/8; // 限制角度
-  controls.maxPolarAngle= Math.PI/3;
+  controls.minPolarAngle= Math.PI/20; // 限制角度
+  controls.maxPolarAngle= Math.PI/18;
   controls.panSpeed=0.5 // 速度
   controls.rotateSpeed=0.5
   controls.update();
