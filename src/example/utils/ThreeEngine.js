@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from '@/utils/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-
+import {createGrid} from "./Map.js"
+import {createTexture} from "./Texture.js"
+import { tileMap } from './MapData.js';
 export default class ThreeEngine {
   constructor(domRoot, miniDom) {
     this.ndRender  = true// 是否需要渲染
-    this.size = 20;       // 场景大小
-    this.GridSize = 20;   // 网格大小
+    this.size = 8;       // 场景大小（半径）
+    this.GridSize = 20;   // 格子大小
     this.maps = new Map();// 地图坐标
     this.last_xz = [0,0]  // 上次的坐标
     this.scale = 10;      // 场景缩放
@@ -20,6 +22,7 @@ export default class ThreeEngine {
     this.Texture = new Map(); // 纹理缓存
     this.gui = new GUI();
     this.clock = new THREE.Clock();
+    this.lastValidTarget = new THREE.Vector3();;
     this._init();
   }
 
@@ -87,7 +90,8 @@ export default class ThreeEngine {
     dir.shadow.bias = -0.001;
     this.scene.add(amb, dir);
    
-    this.createTexture();
+    // 注册纹理
+    createTexture.bind(this)();
 
     // 地图
     this.initMap(0,0)
@@ -141,65 +145,20 @@ export default class ThreeEngine {
         const key = `${x},${z}`;
         if (!this.maps.has(key)) {
           this.maps.set(key, [x, z]);
-          this.createGrid(x*this.GridSize,0,z*this.GridSize)
+          createGrid.bind(this)(x*this.GridSize,0,z*this.GridSize)
         }
       }
     }
   }
-  // 创建格子
-  createGrid(centerX, centerY, centerZ){ 
-    const group = new THREE.Group(); //群
-    this.scene.add(group);
-    const grid_mat = this.Texture.get('grid_mat');
-    const grid_geo = this.Texture.get('grid_geo');
-    const material = this.Texture.get('mesh_mater');
-    const lineMat = this.Texture.get('line_mat');
-    // 基础底层
-    const base = new THREE.Mesh(grid_geo, grid_mat)
-    base.receiveShadow = true
-    base.position.set(centerX, centerY -0.01, centerZ);
-    group.add(base)
-    // 创建格子
-    const grass = new THREE.Mesh(grid_geo, material);
-    grass.position.set(centerX, centerY, centerZ);
-    grass.receiveShadow = true
-    grass.name = 'grid';
-    grass.userData = { x: centerX/this.GridSize, z: centerZ/this.GridSize };
-    group.add(grass);
-    // 边框线
-    const edges = new THREE.EdgesGeometry(grid_geo);
-    const lines = new THREE.LineSegments(edges, lineMat.clone())
-    lines.position.set(centerX, centerY, centerZ);
-    group.add(lines)
-  };
-  // 纹理材质
-  createTexture(){
-    const grid_mat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-    const grid_geo = new THREE.PlaneGeometry(this.GridSize, this.GridSize)
-    grid_geo.rotateX( - Math.PI / 2)
-    const lineMat = new THREE.LineBasicMaterial({ color: 0x333333 });
-    //纹理
-    const loader = new THREE.TextureLoader();
-    const GTexture = loader.load('/map/grass.png', (t) => {
-      t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      t.repeat.set(20, 20);
-    });
-    const material = new THREE.MeshBasicMaterial({
-      map: GTexture,
-      transparent: true,
-      alphaTest: 0.1,
-      depthWrite: false,
-    });
-    this.Texture.set('grid_geo', grid_geo);
-    this.Texture.set('grid_mat', grid_mat);
-    this.Texture.set('mesh_mater', material);
-    this.Texture.set('line_mat', lineMat);
-  }
+
   /* -------------- 渲染循环 -------------- */
   _animate() {
     requestAnimationFrame(() => this._animate());
+    // 限制控制器 target 不超出地图边界
     this.controls.update();
     if (this.ndRender) {
+
+      const target = this.controls.target;
       this.renderer.setScissorTest(true);
       // 主视口
       const mainAspect = this._setScissor(this.domRoot);
@@ -208,14 +167,16 @@ export default class ThreeEngine {
       this.renderer.render(this.scene, this.camera);
 
       // 小地图
+      this.mini_camera.position.set(target.x, 80, target.z); // 保持俯视高度
+      this.mini_camera.lookAt(target.x, 0, target.z);
       const miniAspect = this._setScissor(this.miniDom);
       this.mini_camera.aspect = miniAspect;
       this.mini_camera.updateProjectionMatrix();
       this.renderer.render(this.scene, this.mini_camera);
-      // this.renderer.setScissorTest(false);
+      this.renderer.setScissorTest(false);
 
-      var target=this.controls.target
-      let tarX,tarY
+
+      let tarX,tarY // 需要加载的坐标格子
       if(Math.abs(target.x-0)>(this.size/2)){
         if(target.x>0){
           tarX=Math.ceil((target.x-(this.size/2))/this.size)

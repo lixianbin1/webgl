@@ -30,6 +30,7 @@ const init = (engine) => {
     for (let i = 0; i < intersects.length; i++) {
       const obj = intersects[i].object;
       if (obj.name === 'grid') {
+        console.log(obj.userData)
         const { x, z } = obj.userData;
         document.getElementById('coordinate-display').textContent = `坐标: (${x}, ${z})`;
         break;
