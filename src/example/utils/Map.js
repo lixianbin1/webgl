@@ -18,11 +18,11 @@ export function createGrid(centerX, centerY, centerZ){
     const grass = new THREE.Mesh(grid_geo, material);
     grass.position.set(centerX, centerY, centerZ);
     grass.receiveShadow = true
+    group.add(grass);
     const data = tileMap.get(`${centerX/this.GridSize},${centerZ/this.GridSize}`)
     if(data){
         grass.name = 'grid';
         grass.userData = data;
-        group.add(grass);
         // 边框线
         const edges = new THREE.EdgesGeometry(grid_geo);
         const lines = new THREE.LineSegments(edges, lineMat.clone())
@@ -30,4 +30,4 @@ export function createGrid(centerX, centerY, centerZ){
         group.add(lines)
     }
 
-};
+};Math.floor((Math.sqrt(tileMap.size) - 1) / 2)

@@ -4,16 +4,16 @@ import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import {createGrid} from "./Map.js"
 import {createTexture} from "./Texture.js"
 import { tileMap } from './MapData.js';
+import { createGui } from "./GuiHelp.js";
 export default class ThreeEngine {
   constructor(domRoot, miniDom) {
-    this.ndRender  = true// 是否需要渲染
-    this.size = 8;       // 场景大小（半径）
+    this.ndRender  = true // 是否需要渲染
+    this.size = 24;       // 场景大小（长度，偶数）
     this.GridSize = 20;   // 格子大小
-    this.maps = new Map();// 地图坐标
-    this.last_xz = [0,0]  // 上次的坐标
+    this.maps = new Map();// 已渲染地图坐标
     this.scale = 10;      // 场景缩放
-    this.domRoot = domRoot;     // 主视口容器
-    this.miniDom = miniDom;     // 小地图容器
+    this.domRoot = domRoot;  // 主视口容器
+    this.miniDom = miniDom;  // 小地图容器
     this.scene = new THREE.Scene();
     this.camera = null;    // 主相机
     this.mini_camera = null;
@@ -68,6 +68,7 @@ export default class ThreeEngine {
     controls.maxPolarAngle = Math.PI / 4;
     controls.panSpeed=0.5                   //限制速度
     controls.rotateSpeed=0.5
+    controls.enableRotate = false; //禁止旋转
     controls.mouseButtons = {
       LEFT: THREE.MOUSE.PAN,
       MIDDLE: THREE.MOUSE.DOLLY,
@@ -81,6 +82,7 @@ export default class ThreeEngine {
     // 光照
     const amb = new THREE.AmbientLight(0xffffff, 0.3);    //环境光
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);//平行光
+    this.dir = dir;
     dir.position.set(20, 40, 20);
     dir.castShadow = true; //开启阴影
     const c = 40;
@@ -92,45 +94,12 @@ export default class ThreeEngine {
     dir.shadow.bias = -0.001;
     this.scene.add(amb, dir);
    
-    // 注册纹理
-    createTexture.bind(this)();
+    
+    createTexture.bind(this)(); // 注册纹理
+    createGui.bind(this)();     // 注册GUI Helper
 
     // 地图
     this.initMap(0,0)
-
-    // 辅助
-    this.scene.add(new THREE.AxesHelper(80));   // 坐标轴
-    this.camHelper = new THREE.CameraHelper(dir.shadow.camera); // 投影相机
-    this.camHelper.visible = false;
-    this.scene.add(this.camHelper);
-
-    // GUI
-    this.gui.add({ showHelper: false }, 'showHelper')
-      .name('阴影相机')
-      .onChange(v => (this.camHelper.visible = v));
-    this.gui.add({ controls: true }, 'controls')
-      .name('自由视角')
-      .onChange(v => {
-        if (v) {
-            controls.minPolarAngle = Math.PI / 20;
-            controls.maxPolarAngle = Math.PI / 18;
-            } else {
-            controls.minPolarAngle = 0;
-            controls.maxPolarAngle = Math.PI;
-        }
-      });
-    this.gui.add(this, 'scale',1,15)
-      .name('自由视角2')
-      .onChange(v => {
-        this.scale = v;
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-        this.camera.left   = width / -this.scale;
-        this.camera.right  = width / this.scale;
-        this.camera.top    = height / this.scale;
-        this.camera.bottom = height / -this.scale;
-        this.camera.updateProjectionMatrix();
-      });
 
     // 窗口自适应
     window.addEventListener('resize', () => this._onResize());
@@ -158,8 +127,9 @@ export default class ThreeEngine {
     // 限制控制器 target 不超出地图边界
     this.controls.update();
     if (this.ndRender) {
+      const length = Math.sqrt(tileMap.size) - 1
       const target = this.controls.target;
-      const half = Math.floor(this.size / 2);
+      const half = Math.floor(length / 2);
       const minX = -half * this.GridSize;
       const maxX =  half * this.GridSize;
       const minZ = -half * this.GridSize;
@@ -172,7 +142,7 @@ export default class ThreeEngine {
       target.x = THREE.MathUtils.clamp(target.x, minX, maxX);
       target.z = THREE.MathUtils.clamp(target.z, minZ, maxZ);
       this.camera.position.copy(target.clone().add(offset));
-      
+
       this.renderer.setScissorTest(true);
       // 主视口
       const mainAspect = this._setScissor(this.domRoot);
@@ -235,7 +205,14 @@ export default class ThreeEngine {
   }
 
   _onResize() {
-    this.ndRender = true
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    this.camera.left   = -w / this.scale;
+    this.camera.right  =  w / this.scale;
+    this.camera.top    =  h / this.scale;
+    this.camera.bottom = -h / this.scale;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setSize(w, h);
+    this.ndRender = true;
   }
 }
