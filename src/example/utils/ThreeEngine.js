@@ -22,7 +22,9 @@ export default class ThreeEngine {
     this.Texture = new Map(); // 纹理缓存
     this.gui = new GUI();
     this.clock = new THREE.Clock();
-    this.lastValidTarget = new THREE.Vector3();;
+    this.lastValidTarget = new THREE.Vector3();       // 上次有效点位
+    this.lastValid = new THREE.Vector3(180, 180, 180);// 相机点位
+
     this._init();
   }
 
@@ -45,7 +47,7 @@ export default class ThreeEngine {
     const camera = new THREE.OrthographicCamera( 
       width / - this.scale, width / this.scale, height / this.scale, height / - this.scale, 1, 600
     );
-    camera.position.set(180, 180, 180);
+    camera.position.copy(this.lastValid);
     camera.lookAt(0, 0, 0);
     this.camera = camera;
 
@@ -130,7 +132,6 @@ export default class ThreeEngine {
         this.camera.updateProjectionMatrix();
       });
 
-
     // 窗口自适应
     window.addEventListener('resize', () => this._onResize());
     this._animate();
@@ -157,8 +158,21 @@ export default class ThreeEngine {
     // 限制控制器 target 不超出地图边界
     this.controls.update();
     if (this.ndRender) {
-
       const target = this.controls.target;
+      const half = Math.floor(this.size / 2);
+      const minX = -half * this.GridSize;
+      const maxX =  half * this.GridSize;
+      const minZ = -half * this.GridSize;
+      const maxZ =  half * this.GridSize;
+      
+      // 相机相对于目标的偏移向量
+      const offset = this.camera.position.clone().sub(target); 
+      
+      // 限制 target 和 camera 位置，保持偏移不变
+      target.x = THREE.MathUtils.clamp(target.x, minX, maxX);
+      target.z = THREE.MathUtils.clamp(target.z, minZ, maxZ);
+      this.camera.position.copy(target.clone().add(offset));
+      
       this.renderer.setScissorTest(true);
       // 主视口
       const mainAspect = this._setScissor(this.domRoot);
