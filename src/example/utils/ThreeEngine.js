@@ -1,11 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from '@/utils/OrbitControls.js';
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import {createGrid} from "./Map.js"
+import {createGrid,initMap} from "./Map.js"
 import {createTexture} from "./Texture.js"
 import { tileMap } from './MapData.js';
 import { createGui } from "./GuiHelp.js";
-import { createLight,updateLight } from "./Light.js";
+import { createLight } from "./Light.js";
 export default class ThreeEngine {
   constructor(domRoot, miniDom) {
     this.ndRender  = true // 是否需要渲染
@@ -65,7 +65,7 @@ export default class ThreeEngine {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.screenSpacePanning = false;    //禁止y轴平移
-    controls.minPolarAngle = Math.PI / 4;  //限制角度
+    controls.minPolarAngle = Math.PI / 4;   //限制角度
     controls.maxPolarAngle = Math.PI / 4;
     controls.panSpeed=0.5                   //限制速度
     controls.rotateSpeed=0.5
@@ -83,28 +83,11 @@ export default class ThreeEngine {
     createLight.bind(this)();   // 注册光照
     createTexture.bind(this)(); // 注册纹理
     createGui.bind(this)();     // 注册GUI Helper
-    
-    // 地图
-    this.initMap(0,0)
+    initMap.bind(this)();       // 注册地图
 
     // 窗口自适应
     window.addEventListener('resize', () => this._onResize());
     this._animate();
-  }
-  // 初始化格子
-  initMap(cx, cz){
-    const length = this.size / 2;
-    for (let dx = -length; dx <= length; dx++) {
-      for (let dz = -length; dz <= length; dz++) {
-        const x = cx + dx;
-        const z = cz + dz;
-        const key = `${x},${z}`;
-        if (!this.maps.has(key)) {
-          this.maps.set(key, [x, z]);
-          createGrid.bind(this)(x*this.GridSize,0,z*this.GridSize)
-        }
-      }
-    }
   }
 
   /* -------------- 渲染循环 -------------- */
@@ -113,7 +96,6 @@ export default class ThreeEngine {
     // 限制控制器 target 不超出地图边界
     this.controls.update();
     if (this.ndRender) {
-      console.log('渲染画面');
       const length = Math.sqrt(tileMap.size) - 1
       const target = this.controls.target;
       const half = Math.floor(length / 2);
@@ -146,27 +128,10 @@ export default class ThreeEngine {
       this.renderer.render(this.scene, this.mini_camera);
       this.renderer.setScissorTest(false);
 
-
-      let tarX,tarY // 需要加载的坐标格子
-      if(Math.abs(target.x-0)>(this.size/2)){
-        if(target.x>0){
-          tarX=Math.ceil((target.x-(this.size/2))/this.size)
-        }else{
-          tarX=Math.floor((target.x+(this.size/2))/this.size)
-        }
-      }else{
-        tarX=0
-      }
-      if(Math.abs(target.z-0)>(this.size/2)){
-        if(target.z>0){
-          tarY=Math.ceil((target.z-(this.size/2))/this.size)
-        }else{
-          tarY=Math.floor((target.z+(this.size/2))/this.size)
-        }
-      }else{
-        tarY=0
-      }
-      this.initMap(tarX,tarY)
+      // 计算焦点坐标
+      const tarX = Math.floor(target.x / this.GridSize);
+      const tarZ = Math.floor(target.z / this.GridSize);
+      initMap.call(this, tarX, tarZ);
       this.ndRender = false; // 渲染完后重置
     }
   }

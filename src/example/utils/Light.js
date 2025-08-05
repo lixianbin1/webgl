@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // 光照
 const amb = new THREE.AmbientLight(0xffffff, 0.3);    //环境光
-const dir = new THREE.DirectionalLight(0xffffff, 0.8);//平行光
+const dir = new THREE.DirectionalLight(0xffffff, 3.8);//平行光
 export function createLight(){
     this.dir = dir;
     this.amb = amb;
