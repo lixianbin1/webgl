@@ -5,6 +5,7 @@ import {createGrid} from "./Map.js"
 import {createTexture} from "./Texture.js"
 import { tileMap } from './MapData.js';
 import { createGui } from "./GuiHelp.js";
+import { createLight,updateLight } from "./Light.js";
 export default class ThreeEngine {
   constructor(domRoot, miniDom) {
     this.ndRender  = true // 是否需要渲染
@@ -79,25 +80,10 @@ export default class ThreeEngine {
     });
     this.controls = controls;
 
-    // 光照
-    const amb = new THREE.AmbientLight(0xffffff, 0.3);    //环境光
-    const dir = new THREE.DirectionalLight(0xffffff, 0.8);//平行光
-    this.dir = dir;
-    dir.position.set(20, 40, 20);
-    dir.castShadow = true; //开启阴影
-    const c = 40;
-    dir.shadow.camera.left = -c;
-    dir.shadow.camera.right = c;
-    dir.shadow.camera.top = c;
-    dir.shadow.camera.bottom = -c;
-    dir.shadow.mapSize.set(1512, 1512);
-    dir.shadow.bias = -0.001;
-    this.scene.add(amb, dir);
-   
-    
+    createLight.bind(this)();   // 注册光照
     createTexture.bind(this)(); // 注册纹理
     createGui.bind(this)();     // 注册GUI Helper
-
+    
     // 地图
     this.initMap(0,0)
 
@@ -127,6 +113,7 @@ export default class ThreeEngine {
     // 限制控制器 target 不超出地图边界
     this.controls.update();
     if (this.ndRender) {
+      console.log('渲染画面');
       const length = Math.sqrt(tileMap.size) - 1
       const target = this.controls.target;
       const half = Math.floor(length / 2);

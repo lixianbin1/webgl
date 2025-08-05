@@ -8,10 +8,8 @@ import { ref,onMounted } from 'vue'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader.js';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
-import { OrbitControls } from '@/utils/OrbitControls.js';
 import * as THREE from 'three';
 import ThreeEngine from '@/example/utils/ThreeEngine.js'
-import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 
 
 const init = (engine) => {

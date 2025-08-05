@@ -30,4 +30,4 @@ export function createGrid(centerX, centerY, centerZ){
         group.add(lines)
     }
 
-};Math.floor((Math.sqrt(tileMap.size) - 1) / 2)
+};
