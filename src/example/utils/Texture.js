@@ -7,13 +7,13 @@ export function createTexture(){
         t.wrapS = t.wrapT = THREE.RepeatWrapping;
         t.repeat.set(20, 20);
     });
-    const BaseTexture = loader.load('/map/base.png', (t) => {
+    const Base1Texture = loader.load('/map/base1.png', (t) => {
         t.wrapS = t.wrapT = THREE.RepeatWrapping;
     });
-    const L1Texture = loader.load('/map/liang1.png', (t) => {
+    const M1Texture = loader.load('/map/M1.png', (t) => {
         t.wrapS = t.wrapT = THREE.RepeatWrapping;
     });
-    const L2Texture = loader.load('/map/liang2.png', (t) => {
+    const S1Texture = loader.load('/map/S1.png', (t) => {
         t.wrapS = t.wrapT = THREE.RepeatWrapping;
     });
     // 材质（网络格）
@@ -23,20 +23,20 @@ export function createTexture(){
         alphaTest: 0.1,
         depthWrite: false,
     });
-    const Basematerial = new THREE.MeshLambertMaterial({
-        map: BaseTexture,
+    const Base1material = new THREE.MeshLambertMaterial({
+        map: Base1Texture,
         transparent: true,
         alphaTest: 0.1,
         depthWrite: false,
     });
-    const L1material = new THREE.MeshLambertMaterial({
-        map: L1Texture,
+    const M1material = new THREE.MeshLambertMaterial({
+        map: M1Texture,
         transparent: true,
         alphaTest: 0.1,
         depthWrite: false,
     });
-    const L2material = new THREE.MeshLambertMaterial({
-        map: L2Texture,
+    const S1material = new THREE.MeshLambertMaterial({
+        map: S1Texture,
         transparent: true,
         alphaTest: 0.1,
         depthWrite: false,
@@ -55,8 +55,8 @@ export function createTexture(){
     this.Texture.set('grid_geo', grid_geo);
     this.Texture.set('grid_mat', grid_mat);
     this.Texture.set('mesh_mater', material);
-    this.Texture.set('Base_mater',Basematerial);
-    this.Texture.set('l1_mater',L1material);
-    this.Texture.set('l2_mater',L2material);
+    this.Texture.set('Base1_mater',Base1material);
+    this.Texture.set('m1_mater',M1material);
+    this.Texture.set('s1_mater',S1material);
     this.Texture.set('line_mat', lineMat);
 }

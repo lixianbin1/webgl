@@ -25,9 +25,9 @@ export function createGrid(centerX, centerY, centerZ){
     const grid_mat = this.Texture.get('grid_mat');
     const grid_geo = this.Texture.get('grid_geo');
     const material = this.Texture.get('mesh_mater');
-    const Base_mater = this.Texture.get('Base_mater');
-    const l1_mater = this.Texture.get('l1_mater');
-    const l2_mater = this.Texture.get('l2_mater');
+    const Base1_mater = this.Texture.get('Base1_mater');
+    const M1_mater = this.Texture.get('m1_mater');
+    const S1_mater = this.Texture.get('s1_mater');
     const lineMat = this.Texture.get('line_mat');
     // 基础底层
     const base = new THREE.Mesh(grid_geo, grid_mat)
@@ -43,12 +43,13 @@ export function createGrid(centerX, centerY, centerZ){
     if(data){
         if(data.type == 'grass'){
             if(data.level == 1){
-                MATERIAL = l1_mater
+                MATERIAL = M1_mater
             }else if(data.level == 2){
-                MATERIAL = l2_mater
+                MATERIAL = S1_mater
             }
         }else{
-            MATERIAL = Base_mater
+            MATERIAL = Base1_mater
+            
         }
     }
     const grass = new THREE.Mesh(grid_geo, MATERIAL);

@@ -23,7 +23,7 @@ const init = (engine) => {
     const rect = canvas.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    raycaster.setFromCamera(mouse, camera);
+    raycaster.setFromCamera(mouse, camera); 
     const intersects = raycaster.intersectObjects(scene.children, true);
     for (let i = 0; i < intersects.length; i++) {
       const obj = intersects[i].object;
@@ -59,13 +59,9 @@ const init = (engine) => {
             child.material.map = texture;
           }
         })
-        const box = new THREE.Box3().setFromObject(object);
-        const center = box.getCenter(new THREE.Vector3());
-        object.position.x -= center.x;
-        object.position.z -= center.z;
-
+        object.position.set(0,-6.3,0)
         object.transparent=true;
-        object.opacity=0.5
+        object.opacity=0
         scene.add(object);
         engine.ndRender = true;
         renderer.render(scene,camera);

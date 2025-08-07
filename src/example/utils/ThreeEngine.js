@@ -22,8 +22,6 @@ export default class ThreeEngine {
     this.controls = null;  // 控制器
     this.Texture = new Map(); // 纹理缓存
     this.gui = new GUI();
-    this.clock = new THREE.Clock();
-    this.lastValidTarget = new THREE.Vector3();       // 上次有效点位
     this.lastValid = new THREE.Vector3(180, 180, 180);// 相机点位
 
     this._init();

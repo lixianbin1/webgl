@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 // 光照
 const amb = new THREE.AmbientLight(0xffffff, 0.3);    //环境光
-const dir = new THREE.DirectionalLight(0xffffff, 3.8);//平行光
+const dir = new THREE.DirectionalLight(0xffffff, 1);//平行光
 export function createLight(){
     this.dir = dir;
     this.amb = amb;
@@ -15,10 +15,10 @@ export function createLight(){
     dir.shadow.camera.bottom = -c;
     dir.shadow.mapSize.set(1512, 1512);
     dir.shadow.bias = -0.001;
-    // 循环更新： 2.5分更新一次光照
-    this.lightTimer = setInterval(() => {
-        updateLight.bind(this)()
-    }, 150000);
+    // // 循环更新： 2.5分更新一次光照
+    // this.lightTimer = setInterval(() => {
+    //     updateLight.bind(this)()
+    // }, 150000);
     this.scene.add(amb, dir);
 };
 
