@@ -8,6 +8,7 @@ import { createGui } from "./GuiHelp.js";
 import { createLight } from "./Light.js";
 export default class ThreeEngine {
   constructor(domRoot, miniDom) {
+    this.frameId = null;
     this.ndRender  = true // 是否需要渲染
     this.size = 24;       // 场景大小（长度，偶数）
     this.GridSize = 20;   // 格子大小
@@ -23,10 +24,14 @@ export default class ThreeEngine {
     this.Texture = new Map(); // 纹理缓存
     this.gui = new GUI();
     this.lastValid = new THREE.Vector3(180, 180, 180);// 相机点位
-
+    this.dispose = ()=>this._dispose();
     this._init();
   }
-
+  _dispose() {
+    this.gui.destroy();
+    this.renderer.dispose();
+    cancelAnimationFrame(this.frameId)
+  }
   /* -------------- 初始化 -------------- */
   _init() {
     // 渲染器
@@ -63,8 +68,8 @@ export default class ThreeEngine {
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.screenSpacePanning = false;    //禁止y轴平移
-    controls.minPolarAngle = Math.PI / 4;   //限制角度
-    controls.maxPolarAngle = Math.PI / 4;
+    controls.minPolarAngle = Math.PI / 6;   //限制角度
+    controls.maxPolarAngle = Math.PI / 6;
     controls.panSpeed=0.5                   //限制速度
     controls.rotateSpeed=0.5
     controls.enableRotate = false; //禁止旋转
@@ -90,7 +95,7 @@ export default class ThreeEngine {
 
   /* -------------- 渲染循环 -------------- */
   _animate() {
-    requestAnimationFrame(() => this._animate());
+    this.frameId = requestAnimationFrame(() => this._animate());
     // 限制控制器 target 不超出地图边界
     this.controls.update();
     if (this.ndRender) {

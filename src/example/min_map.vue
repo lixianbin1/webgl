@@ -3,7 +3,7 @@
   <div id="map"></div>
 </template>
 <script setup>
-import { ref,onMounted } from 'vue'
+import { ref,onMounted,onBeforeUnmount} from 'vue'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader.js';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
@@ -12,7 +12,17 @@ import * as THREE from 'three';
 
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 
+let frameId = null
 const init = () => {
+  const disposeThree = () => {
+    cancelAnimationFrame(frameId)
+    renderer.dispose()
+    gui.destroy()
+  }
+  onBeforeUnmount(() => {
+    disposeThree()
+  })
+
   const view1Elem = document.querySelector('#svg');
   const view2Elem = document.querySelector('#map');
   // 创建场景实例
@@ -228,7 +238,7 @@ const init = () => {
 
 /* 循环动画 */
   (function animate() {
-    requestAnimationFrame( animate ); //请求下一帧
+    frameId = requestAnimationFrame( animate ); //请求下一帧
     controls.update(); // 更新摄像机
     renderer.setScissorTest(true); //开启裁剪
     // 渲染主视野

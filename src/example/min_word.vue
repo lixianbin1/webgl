@@ -4,7 +4,7 @@
   <div id="coordinate-display">坐标: (0, 0)</div>
 </template>
 <script setup>
-import { ref,onMounted } from 'vue'
+import { ref,onMounted,onBeforeUnmount} from 'vue'
 // import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader.js';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
@@ -13,6 +13,12 @@ import ThreeEngine from '@/example/utils/ThreeEngine.js'
 
 
 const init = (engine) => {
+
+  const disposeThree = () => {
+    engine.dispose();
+  }
+  onBeforeUnmount(() => disposeThree())
+
   const scene = engine.scene;
   const camera = engine.camera;
   const renderer = engine.renderer;

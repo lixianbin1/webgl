@@ -5,7 +5,7 @@
 
 <script setup>
 /* eslint-disable */
-import { onMounted } from 'vue'
+import { onMounted,onBeforeUnmount  } from 'vue'
 import * as THREE from 'three'
 import { OrbitControls } from '@/utils/OrbitControls.js'
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
@@ -15,7 +15,7 @@ import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 /* ---------- 常量 ---------- */
 const SIZE = 20
 const CHUNK = 4
-
+let frameId = null
 /* 纹理缓存 */
 const GRASS_TEX = new THREE.TextureLoader().load('/map/grass.png')
 GRASS_TEX.wrapS = GRASS_TEX.wrapT = THREE.RepeatWrapping
@@ -147,7 +147,12 @@ const init = () => {
   const view1Elem = document.querySelector('#svg')
   const view2Elem = document.querySelector('#map')
 
-
+  const disposeThree = () => {
+    cancelAnimationFrame(frameId)
+    renderer.dispose()
+    gui.destroy()
+  }
+  onBeforeUnmount(() => disposeThree()) // 销毁
   
   /* 场景 */
   const scene = new THREE.Scene()
@@ -252,8 +257,8 @@ const init = () => {
   }
 
   /* ---------- 动画循环 ---------- */
-  ;(function animate() {
-    requestAnimationFrame(animate)
+  (function animate() {
+    frameId = requestAnimationFrame(animate)
     controls.update()
     updateChunks()
 
