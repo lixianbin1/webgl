@@ -9,9 +9,9 @@ const router = createRouter({
         component: () => import('../view/index.vue')
       },
     {
-      path: '/min_sql',
-      name: 'Min_SQL',
-      component: () => import('../view/min_sql.vue')
+      path: '/ManageSQL',
+      name: 'ManageSQL',
+      component: () => import('@/view/ManageSQL/index.vue')
     },
     {
       path: '/min_map',
