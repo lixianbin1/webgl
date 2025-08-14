@@ -13,6 +13,10 @@
             <i class="el-icon-menu"></i>
             <span >数据管理</span>
           </el-menu-item>
+          <el-menu-item index="/Word" >
+            <i class="el-icon-menu"></i>
+            <span >Word</span>
+          </el-menu-item>
           <el-menu-item index="/min_map">
             <i class="el-icon-menu"></i>
             <span >Min Map</span>

@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import('@/view/ManageSQL/index.vue')
     },
     {
+      path: '/Word',
+      name: 'Word',
+      component: () => import('@/view/Word/index.vue')
+    },
+    {
       path: '/min_map',
       name: 'minMap',
       component: () => import('../example/min_map.vue')

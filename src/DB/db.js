@@ -4,6 +4,7 @@ import initdb from './initdb.js'
 export let db = new Dexie('MyAppDB');
 
 /* 初始化数据库数据 */
+console.log(db)
 await initdb(db)
 
 /* 查询：数据库表的列表 */
