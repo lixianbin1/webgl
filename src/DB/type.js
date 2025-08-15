@@ -9,13 +9,22 @@ export const tabletype = {
   tableComments: '++id, name, comment, createTime, createUser',
 
   //id, 名称，uid，武力，防御，速度，法术，射程，被动，主动，指挥，兵种
-  daobing: '++id, name, rank, ack, defense, speed, spell, range, modela, modelb, modelc, arm',
+  daobing: '++id,[rank+range], name, rank, ack, defense, speed, spell, range, modela, modelb, modelc, arm',
 
   //id，名称，daobing_id, 等级，经验
   wujiang: '++id, name, u_id, daobing_id, level, exp',
 
   //id 名称 队伍 wujiang_id 等级 兵力 伤兵
   duiwu: '++id, name, type , wujiang_id, troops,ingured',
+}
+// 类型对应队伍
+export const levelType = {
+  '1': 'N', // 新手
+  '2': 'R', // 菜鸟
+  '3': 'A', // 正常
+  '4': 'S', // 精英
+  '5': 'SS',// 宗师
+  '6': 'SSS',// 大宗师
 }
 export const mapType = {
   '1': '平地',

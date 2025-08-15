@@ -4,18 +4,17 @@ import initdb from './initdb.js'
 export let db = new Dexie('MyAppDB');
 
 /* 初始化数据库数据 */
-console.log(db)
 await initdb(db)
 
 /* 查询：数据库表的列表 */
 export const getTable = async({page,size}) => {
-  console.log('查询数据库表列表')
+  console.log('查询数据库表列表','tableComments')
   return await getTableData({name:'tableComments',page,size})
 }
 
 /* 添加：数据库的新表 */
 export const addTable = async ({ name, comment, keys }) => {
-  console.log('添加数据库表')
+  console.log('添加数据库表',name)
   let schemaStr = Array.isArray(keys) ? keys.join(', ') : String(keys);
   schemaStr = '++id,' + schemaStr;
 
@@ -60,7 +59,7 @@ export const addTable = async ({ name, comment, keys }) => {
 
 /* 删除: 删除数据库表 */
 export const delTable = async({name,id}) => { 
-  console.log('删除数据库表')
+  console.log('删除数据库表',name)
   const Version = db.verno || 1;
   const newVersion = Version + 1;
 
@@ -91,7 +90,7 @@ export const delTable = async({name,id}) => {
 
 /* 修改: 修改数据库表 */
 export const upTable = async({oldName,name,comment,keys}) => {
-  console.log('修改数据库表') 
+  console.log('修改数据库表',name) 
   let schemaStr = Array.isArray(keys) ? keys.join(', ') : String(keys);
   schemaStr = '++id,' + schemaStr;
 
@@ -158,8 +157,7 @@ export async function exportDB() {
 
 /* 查询：单个表的数据 */
 export const getTableData = async({name,page=1,size=Infinity}) => {
-    console.log('查询单个表数据')
-    console.log(db.tables,db.verno)
+    console.log('查询单个表数据',name)
     let table = db.table(name);
     let indexes = table.schema.indexes
     let columes = [{label:'ID',prop:'id',}] //表头

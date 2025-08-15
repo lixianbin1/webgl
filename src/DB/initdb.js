@@ -1,11 +1,13 @@
-import {mapType,tabletype} from './type.js';
+import {mapType,tabletype,levelType} from './type.js';
 import {battleing} from './battle.js';
 const initdb = async (db,start) => { 
   try {
     // 尝试打开现有数据库
     await db.open(); 
     // 如果数据库已存在，Dexie会自动处理版本
-    console.log("已有数据库版本:", db.verno, db.tables);
+    console.log("已有数据库版本:", db.verno);
+
+    const data = setMonsters(db,{x:0,z:0,level:1})
   } catch (error) {
     // 如果是全新数据库，定义初始结构
     if(db.verno < 0.1){
@@ -39,7 +41,7 @@ const initdb = async (db,start) => {
       await db.duiwu.add({ name: '狼', type:'1',wujiang_id: 'D_190829001',troops:1000,ingured:0});
     }
   }
-  battleing()
+  // battleing()
 }
 
 // 生成地图数据
@@ -53,6 +55,7 @@ export const generateMapsData = async (db,length = 3) => {
         // 随机生成类型和等级
         const type = Math.floor(Math.random() * 5) + 1;
         const level = Math.floor(Math.random() * 5) + 1;
+        // const data = setMonsters(db,{x,z})
         mapsData.push({
           x: x,
           z: z,
@@ -73,8 +76,22 @@ export const generateMapsData = async (db,length = 3) => {
   }
 };
 
-export const setMonsters = async (db,length = 3) => { 
-  const data = db.table('wujiang')
+export const setMonsters = async (db,{x,z,level}) => {
+  const team = []
+  const rank = levelType[level]
+  let data = db.table('daobing').where('[rank+range]').between([rank,3],[rank,5]).toArray()
+  console.log(111,data)
+  let random = Math.floor(Math.random() * data.length);
+  team.push(data[random])
+  data = db.table('daobing').where('[rank+range]').between([rank,2],[rank,4]).toArray()
+  random = Math.floor(Math.random() * data.length);
+  team.push(data[random])
+  data = db.table('daobing').where('[rank+range]').between([rank,1],[rank,3]).toArray()
+  random = Math.floor(Math.random() * data.length);
+  team.push(data[random])
+
+  console.log(111,team)
+  return data
 };
 
 export default initdb;
