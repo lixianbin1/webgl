@@ -19,6 +19,11 @@ const router = createRouter({
       component: () => import('@/view/Word/index.vue')
     },
     {
+      path: '/height_map',
+      name: 'HeightMap',
+      component: () => import('../example/height_map.vue')
+    },
+    {
       path: '/min_map',
       name: 'minMap',
       component: () => import('../example/min_map.vue')

@@ -4,7 +4,7 @@ import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 export function createGui(){ 
     const controls = this.controls
     // GUI
-    const gui = new GUI();
+    const gui = this.gui;
     gui.add({showAxesHelper:false}, 'showAxesHelper')
       .name('坐标轴')
       .onChange(v => {

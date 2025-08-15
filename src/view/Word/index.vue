@@ -17,7 +17,9 @@ import ThreeEngine from '@/view/Word/utils/ThreeEngine.js'
 const init = (engine) => {
 
   const disposeThree = () => {
+    console.log(111111111111)
     engine.dispose();
+    console.log(engine)
   }
   onBeforeUnmount(() => disposeThree())
 

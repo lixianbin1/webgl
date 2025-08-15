@@ -17,6 +17,10 @@
             <i class="el-icon-menu"></i>
             <span >Word</span>
           </el-menu-item>
+          <el-menu-item index="/height_map" >
+            <i class="el-icon-menu"></i>
+            <span >Height Map</span>
+          </el-menu-item>
           <el-menu-item index="/min_map">
             <i class="el-icon-menu"></i>
             <span >Min Map</span>

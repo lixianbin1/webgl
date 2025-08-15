@@ -12,273 +12,116 @@ import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js'
 
-/* ---------- 常量 ---------- */
-const SIZE = 20
-const CHUNK = 4
-let frameId = null
-/* 纹理缓存 */
-const GRASS_TEX = new THREE.TextureLoader().load('/map/grass.png')
-GRASS_TEX.wrapS = GRASS_TEX.wrapT = THREE.RepeatWrapping
-GRASS_TEX.repeat.set(20, 20)
+import * as THREE from 'three';
 
-/* 共享几何体 */
-const PLANE_GEO = new THREE.PlaneGeometry(SIZE, SIZE)
-PLANE_GEO.rotateX(-Math.PI / 2)
-
-/* ---------- ChunkManager ---------- */
-class ChunkManager {
-  constructor(scene) {
-    this.scene = scene
-    this.chunks = new Map() // key = "cx,cz"
-  }
-
-  update(centerX, centerZ, radius = 2) {
-    const cx = Math.floor(centerX / (CHUNK * SIZE))
-    const cz = Math.floor(centerZ / (CHUNK * SIZE))
-    const needed = new Set()
-
-    for (let x = cx - radius; x <= cx + radius; x++) {
-      for (let z = cz - radius; z <= cz + radius; z++) {
-        const key = `${x},${z}`
-        needed.add(key)
-        if (!this.chunks.has(key)) this.create(x, z)
-      }
+// 初始化地图
+export function initMap(targetX = 0, targetZ = 0) {
+  // 清除旧地图
+  this.scene.children.forEach(child => {
+    if (child.userData && child.userData.isMapTile) {
+      this.scene.remove(child);
+      child.geometry.dispose();
+      child.material.dispose();
     }
-
-    for (const [key, chunk] of this.chunks.entries()) {
-      if (!needed.has(key)) {
-        chunk.dispose()
-        this.chunks.delete(key)
-      }
-    }
-  }
-
-  create(cx, cz) {
-    /* 0. 底层白色地面（整块接收阴影） */
-    const baseGeo = new THREE.PlaneGeometry(CHUNK * SIZE, CHUNK * SIZE)
-    baseGeo.rotateX(-Math.PI / 2)
-    const baseMat = new THREE.MeshLambertMaterial({ color: 0xffffff })
-    const base = new THREE.Mesh(baseGeo, baseMat)
-    base.receiveShadow = true
-    base.position.set((cx + 0.5) * CHUNK * SIZE, -0.01, (cz + 0.5) * CHUNK * SIZE)
-    
-    this.scene.add(base)
-
-    /* 1. 数据 */
-    const tiles = []
-    for (let i = 0; i < CHUNK * CHUNK; i++) {
-      tiles.push({
-        name: `C(${cx},${cz})-T${i}`,
-        population: Math.floor(Math.random() * 100)
-      })
-    }
-
-    /* 2. 实例化网格 */
-    const mesh = new THREE.InstancedMesh(
-      PLANE_GEO,
-      new THREE.MeshBasicMaterial({   // 改为 Basic，不受光
-        map: GRASS_TEX,
-        transparent: true,
-        alphaTest: 0.1,
-        depthWrite: false 
-      }),
-      CHUNK * CHUNK
-    )
-    const m = new THREE.Matrix4()
-    for (let dx = 0; dx < CHUNK; dx++) {
-      for (let dz = 0; dz < CHUNK; dz++) {
-        m.setPosition((cx * CHUNK + dx) * SIZE, 0, (cz * CHUNK + dz) * SIZE)
-        mesh.setMatrixAt(dx * CHUNK + dz, m)
-      }
-    }
-    this.scene.add(mesh)
-
-    /* 3. 合并网格线 */
-    const grid = this.createMergedGrid(cx, cz)
-    this.scene.add(grid)
-
-    /* 4. 保存区块 */
-    this.chunks.set(`${cx},${cz}`, {
-      cx, cz, tiles,
-      dispose: () => {
-        base.geometry.dispose()
-        base.material.dispose()
-        this.scene.remove(base)
-
-        mesh.geometry.dispose()
-        mesh.material.dispose()
-        this.scene.remove(mesh)
-      }
-    })
-  }
-
-  createMergedGrid(cx, cz) {
-    const len = CHUNK * SIZE
-    const pts = []
-    const startX = cx * len
-    const startZ = cz * len
-    for (let i = 0; i <= CHUNK; i++) {
-      const p = i * SIZE
-      pts.push(startX + p, 0, startZ, startX + p, 0, startZ + len)
-      pts.push(startX, 0, startZ + p, startX + len, 0, startZ + p)
-    }
-    const geo = new THREE.BufferGeometry()
-    geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3))
-    const mat = new THREE.LineBasicMaterial({ color: 0x000, transparent: true, opacity: 0.3 })
-    const lines = new THREE.LineSegments(geo, mat)
-    lines.position.set(startX + len / 2, 0, startZ + len / 2)
-    return lines
-  }
-
-  /* 读取单格数据 */
-  getTile(worldX, worldZ) {
-    const cx = Math.floor(worldX / (CHUNK * SIZE))
-    const cz = Math.floor(worldZ / (CHUNK * SIZE))
-    const chunk = this.chunks.get(`${cx},${cz}`)
-    if (!chunk) return null
-    const dx = Math.floor((worldX / SIZE) % CHUNK)
-    const dz = Math.floor((worldZ / SIZE) % CHUNK)
-    return chunk.tiles[dz * CHUNK + dx]
-  }
-}
-
-/* ---------- 初始化 ---------- */
-const init = () => {
-  const view1Elem = document.querySelector('#svg')
-  const view2Elem = document.querySelector('#map')
-
-  const disposeThree = () => {
-    cancelAnimationFrame(frameId)
-    renderer.dispose()
-    gui.destroy()
-  }
-  onBeforeUnmount(() => disposeThree()) // 销毁
+  });
   
-  /* 场景 */
-  const scene = new THREE.Scene()
-  scene.background = new THREE.Color(0xa0a0a0)
-  scene.fog = new THREE.Fog(0xa0a0a0, 80, 120)
-
-  /* 相机 */
-  const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500)
-  camera.position.set(0, 50, 0)
-  camera.lookAt(0, 0, 0)
-
-  /* 渲染器 */
-  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-  renderer.shadowMap.enabled = true
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap
-  renderer.setSize(window.innerWidth, window.innerHeight)
-  view1Elem.appendChild(renderer.domElement)
-
-  /* 光照 */
-  const ambient = new THREE.AmbientLight(0xffffff, 0.4)
-  scene.add(ambient)
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.8)
-  dirLight.position.set(20, 40, 20)
-  dirLight.castShadow = true
-  dirLight.shadow.mapSize.width = 1024
-  dirLight.shadow.mapSize.height = 1024
-  dirLight.shadow.camera.left = -40
-  dirLight.shadow.camera.right = 40
-  dirLight.shadow.camera.top = 40
-  dirLight.shadow.camera.bottom = -40
-  dirLight.shadow.camera.near = 10
-  dirLight.shadow.camera.far = 180
-  scene.add(dirLight)
-
-  /* 小地图相机 */
-  const miniCam = new THREE.PerspectiveCamera(60, 1, 0.1, 500)
-  miniCam.position.set(30, 30, 30)
-  miniCam.lookAt(0, 0, 0)
-
-  /* 控制器 */
-  const controls = new OrbitControls(camera, renderer.domElement)
-  controls.enableDamping = true
-  controls.screenSpacePanning = false
-
-  /* Chunk 管理器 */
-  const chunkMgr = new ChunkManager(scene)
-  const updateChunks = () => {
-    chunkMgr.update(controls.target.x, controls.target.z, 2)
+  // 创建新地图块
+  const renderRange = 5; // 渲染范围
+  for (let x = -renderRange; x <= renderRange; x++) {
+    for (let z = -renderRange; z <= renderRange; z++) {
+      const worldX = (targetX + x) * this.GridSize;
+      const worldZ = (targetZ + z) * this.GridSize;
+      this._createMapTile(worldX, worldZ, this._getTerrainType(x, z));
+    }
   }
-  updateChunks()
-
-  /* ---------- OBJ 模型加载 ---------- */
-  const roomTex = new THREE.TextureLoader().load('./a1.png')
-  roomTex.wrapS = roomTex.wrapT = THREE.RepeatWrapping
-  roomTex.repeat.set(4, 4)
-
-  const mtlLoader = new MTLLoader()
-  mtlLoader.setPath('obj/')
-  mtlLoader.load('room1.mtl', (materials) => {
-    materials.preload()
-    const objLoader = new OBJLoader()
-    objLoader.setMaterials(materials)
-    objLoader.setPath('obj/')
-    objLoader.load(
-      'room1.obj',
-      (object) => {
-        object.traverse((child) => {
-          if (child.isMesh) {
-            child.material.map = roomTex
-            child.castShadow = true
-            child.receiveShadow = true
-          }
-        })
-        object.position.set(0, -6, 0)
-        scene.add(object)
-      },
-      undefined,
-      (err) => console.error(err)
-    )
-  })
-
-  /* ---------- GUI ---------- */
-  const gui = new GUI()
-  gui.add(camera, 'fov', 1, 180).name('主视野')
-  gui.add(miniCam, 'fov', 1, 180).name('小地图FOV')
-
-  /* ---------- 双视口裁剪 ---------- */
-  function setScissorForElement(elem) {
-    const canvas = renderer.domElement
-    const canvasRect = canvas.getBoundingClientRect()
-    const elemRect = elem.getBoundingClientRect()
-    const right = Math.min(elemRect.right, canvasRect.right) - canvasRect.left
-    const left = Math.max(0, elemRect.left - canvasRect.left)
-    const bottom = Math.min(elemRect.bottom, canvasRect.bottom) - canvasRect.top
-    const top = Math.max(0, elemRect.top - canvasRect.top)
-    const width = Math.min(canvasRect.width, right - left)
-    const height = Math.min(canvasRect.height, bottom - top)
-    const positiveYUpBottom = canvasRect.height - bottom
-    renderer.setScissor(left, positiveYUpBottom, width, height)
-    renderer.setViewport(left, positiveYUpBottom, width, height)
-    return width / height
-  }
-
-  /* ---------- 动画循环 ---------- */
-  (function animate() {
-    frameId = requestAnimationFrame(animate)
-    controls.update()
-    updateChunks()
-
-    renderer.setScissorTest(true)
-
-    /* 主视口 */
-    const aspect1 = setScissorForElement(view1Elem)
-    camera.aspect = aspect1
-    camera.updateProjectionMatrix()
-    renderer.render(scene, camera)
-
-    /* 小地图 */
-    const aspect2 = setScissorForElement(view2Elem)
-    miniCam.aspect = aspect2
-    miniCam.updateProjectionMatrix()
-    renderer.render(scene, miniCam)
-  })()
 }
 
-onMounted(init)
+// 创建地图块
+function _createMapTile(x, z, type) {
+  const size = this.GridSize;
+  
+  // 创建平面几何体
+  const geometry = new THREE.PlaneGeometry(size, size);
+  geometry.rotateX(-Math.PI / 2);
+  
+  // 创建材质 - 结合宣纸底色和地形水墨纹理
+  const material = new THREE.MeshStandardMaterial({
+    map: this.Texture.get('paper'),
+    aoMap: this.Texture.get(type),
+    aoMapIntensity: 1.2,
+    roughness: 1,
+    metalness: 0,
+    side: THREE.DoubleSide
+  });
+  
+  // 创建网格
+  const tile = new THREE.Mesh(geometry, material);
+  tile.position.set(x, 0, z);
+  tile.userData.isMapTile = true;
+  tile.userData.terrainType = type;
+  
+  // 添加边界
+  this._addTileBorder(tile, size);
+  
+  // 添加阴影效果
+  if (type === 'mountain') {
+    tile.position.y = 5 + Math.random() * 3; // 山地略微抬高
+    this._addShadowEffect(tile, size);
+  }
+  
+  this.scene.add(tile);
+  return tile;
+}
+
+// 添加地图块边界
+function _addTileBorder(tile, size) {
+  const borderGeometry = new THREE.EdgesGeometry(tile.geometry);
+  const borderMaterial = new THREE.LineBasicMaterial({
+    color: 0x333333,
+    transparent: true,
+    opacity: 0.2,
+    linewidth: 1
+  });
+  
+  const border = new THREE.LineSegments(borderGeometry, borderMaterial);
+  border.position.copy(tile.position);
+  border.rotation.copy(tile.rotation);
+  border.userData.isMapTile = true;
+  
+  tile.add(border);
+}
+
+// 添加阴影效果
+function _addShadowEffect(tile, size) {
+  const shadowGeometry = new THREE.PlaneGeometry(size * 1.2, size * 1.2);
+  shadowGeometry.rotateX(-Math.PI / 2);
+  
+  const shadowMaterial = new THREE.MeshBasicMaterial({
+    map: this.Texture.get('shadow'),
+    transparent: true,
+    opacity: 0.5
+  });
+  
+  const shadow = new THREE.Mesh(shadowGeometry, shadowMaterial);
+  shadow.position.set(0, -0.1, 0); // 略低于地形
+  shadow.userData.isMapTile = true;
+  
+  tile.add(shadow);
+}
+
+// 确定地形类型（简化的随机生成）
+function _getTerrainType(x, z) {
+  // 使用简单的哈希算法生成伪随机但一致的地形
+  const hash = (x * 92837111) ^ (z * 689287499);
+  const rand = (hash % 100) / 100;
+  
+  // 根据概率分配地形类型
+  if (rand < 0.5) return 'plain';      // 50% 平原
+  if (rand < 0.7) return 'forest';     // 20% 森林
+  if (rand < 0.85) return 'mountain';  // 15% 山地
+  return 'river';                      // 15% 河流
+}
+
 </script>
 
 <style scoped>

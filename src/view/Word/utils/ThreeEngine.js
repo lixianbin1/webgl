@@ -90,10 +90,10 @@ export default class ThreeEngine {
     });
     this.controls = controls;
 
-    createLight.bind(this)();   // 注册光照
-    createTexture.bind(this)(); // 注册纹理
-    createGui.bind(this)();     // 注册GUI Helper
-    initMap.bind(this)();       // 注册地图
+    createLight.call(this);   // 注册光照
+    createTexture.call(this); // 注册纹理
+    createGui.call(this);     // 注册GUI Helper
+    initMap.call(this);       // 注册地图
 
     // 窗口自适应
     window.addEventListener('resize', () => this._onResize());
