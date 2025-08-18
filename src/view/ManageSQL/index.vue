@@ -76,7 +76,7 @@ const addData = async() => { //打开新增
   Datadrawer.value = true
   DatadrawerType.value = 'add'
   column.value.map(item => { 
-    if(item.prop !== 'id'){
+    if(item.prop !== 'id' && !item.prop.includes('[')){
       Datadrawerform[item.prop] = ''
     }
   })

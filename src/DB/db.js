@@ -163,7 +163,9 @@ export const getTableData = async({name,page=1,size=Infinity}) => {
     let columes = [{label:'ID',prop:'id',}] //表头
     if (indexes.length > 0) {
       indexes.forEach(index => {
-        columes.push({label:index.name, prop:index.name,})
+        if (!index.name.includes('[')) {
+          columes.push({label:index.name, prop:index.name,})
+        }
       });
     }
     if (size === Infinity) { //查询所有数据
@@ -215,7 +217,7 @@ export const exportTableData = async(name) => {
 
 /* 函数集合 */
 // 时间格式化
-function formatDate(format = 'YYYY/MM/DD hh:mm:ss',date = new Date()) {
+export function formatDate(format = 'YYYY/MM/DD hh:mm:ss',date = new Date()) {
   const map = {
     YYYY: date.getFullYear(),
     MM: String(date.getMonth() + 1).padStart(2, '0'),

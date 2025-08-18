@@ -1,4 +1,4 @@
-import {db} from './db.js';
+import {formatDate,db} from './db.js'
 
 const a = [
     {
@@ -315,6 +315,33 @@ function PrintResults(currentState, initialState) {
     }
   }
 }
-export const battleing = () => {
-  Round([a,b])
+
+// PK
+export const battleing = (Attack,Defense) => {
+  Round([Attack,Defense])
+};
+
+
+// 根据传入的坐标，给坐标一个随机野怪队伍
+export const setMonsters = async (db,{x,z,level}) => {
+  let mapTeam = await db.table('maps').where('[x+z]').equals([x,z]).first()
+  let lastTime = new Date(mapTeam.lastTime)
+  let newTime = new Date()
+  const team = []
+  const rank = levelType[level || mapTeam.level]
+  if(newTime - lastTime > 1000 * 60 * 30 || !mapTeam.monsters){
+    let data = await db.table('daobing').where('[rank+range]').between([rank,'3'],[rank,'5']).toArray()
+    console.log(data)
+    let random = Math.floor(Math.random() * data.length);
+    team.push(data[random])
+    data = await db.table('daobing').where('[rank+range]').between([rank,'2'],[rank,'4']).toArray()
+    random = Math.floor(Math.random() * data.length);
+    team.push(data[random])
+    data = await db.table('daobing').where('[rank+range]').between([rank,'1'],[rank,'3']).toArray()
+    random = Math.floor(Math.random() * data.length);
+    team.push(data[random])
+  }
+  lastTime = formatDate()
+  await db.table('maps').update(mapTeam.id,{monsters:team,lastTime})
+  return team
 };

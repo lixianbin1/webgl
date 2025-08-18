@@ -25,14 +25,6 @@
             <i class="el-icon-menu"></i>
             <span >Min Map</span>
           </el-menu-item>
-          <el-menu-item index="/min_map_plug">
-            <i class="el-icon-menu"></i>
-            <span >Min Map Plug</span>
-          </el-menu-item>
-          <el-menu-item index="/min_word">
-            <i class="el-icon-menu"></i>
-            <span >Min Word</span>
-          </el-menu-item>
         </el-menu>
       </el-aside>
       <el-container>

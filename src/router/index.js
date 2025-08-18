@@ -28,16 +28,6 @@ const router = createRouter({
       name: 'minMap',
       component: () => import('../example/min_map.vue')
     },
-    {
-      path: '/min_map_plug',
-      name: 'minMapPlug',
-      component: () => import('../example/min_map_plug.vue')
-    },
-    {
-      path: '/min_word',
-      name: 'minWord',
-      component: () => import('../example/min_word.vue')
-    },
     // 404 页面配置必须放在最后
     {
       path: '/:pathMatch(.*)*',
