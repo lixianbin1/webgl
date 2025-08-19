@@ -17,7 +17,7 @@ const initdb = async (db,start) => {
       await db.open();
       await generateMapsData(db,5);
       // 添加用户数据
-      await db.users.add({ u_id:'001',name: 'admin', sex: '男', age: '18', birthday: '2025/08/11 09:00:00', money: '1000', reputation: '1000',x:'0', z:'0' })
+      await db.users.add({ u_id:'001',name: 'admin', sex: '男', age: '18',color:'#6fcefd', birthday: '2025/08/11 09:00:00', money: '1000', reputation: '1000',x:'0', z:'0' })
       // 添加表注释
       await db.tableNames.add({ name: 'users', comment: '用户表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
       await db.tableNames.add({ name: 'maps', comment: '地图表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
@@ -27,6 +27,7 @@ const initdb = async (db,start) => {
       // 用户表
       await db.fields.add({ tableId: 'users', key: 'u_id', name: '用户ID' });
       await db.fields.add({ tableId: 'users', key: 'name', name: '名称' });
+      await db.fields.add({ tableId: 'users', key: 'color', name: '势力颜色' });
       await db.fields.add({ tableId: 'users', key: 'sex', name: '性别' });
       await db.fields.add({ tableId: 'users', key: 'age', name: '年龄' });
       await db.fields.add({ tableId: 'users', key: 'birthday', name: '生日' });
@@ -34,7 +35,6 @@ const initdb = async (db,start) => {
       await db.fields.add({ tableId: 'users', key: 'reputation', name: '声望' });
       await db.fields.add({ tableId: 'users', key: 'x', name: 'X坐标' });
       await db.fields.add({ tableId: 'users', key: 'z', name: 'Z坐标' });
-
       // 地图表
       await db.fields.add({ tableId: 'maps', key: 'type', name: '地块类型' });
       await db.fields.add({ tableId: 'maps', key: 'typeName', name: '类型名称' });
@@ -58,7 +58,6 @@ const initdb = async (db,start) => {
       await db.fields.add({ tableId: 'daobing', key: 'modela', name: '主动' });
       await db.fields.add({ tableId: 'daobing', key: 'modelb', name: '被动' });
       await db.fields.add({ tableId: 'daobing', key: 'modelc', name: '指挥' });
-
       // 武将表
       await db.fields.add({ tableId: 'wujiang', key: 'name', name: '名称' });
       await db.fields.add({ tableId: 'wujiang', key: 'u_id', name: 'ID' });
@@ -66,7 +65,6 @@ const initdb = async (db,start) => {
       await db.fields.add({ tableId: 'wujiang', key: 'daobing_id', name: '卡池表UID' });
       await db.fields.add({ tableId: 'wujiang', key: 'level', name: '等级' });
       await db.fields.add({ tableId: 'wujiang', key: 'exp', name: '经验' });
-
       // 队伍表
       await db.fields.add({ tableId: 'duiwu', key: 'name', name: '队伍名称' });
       await db.fields.add({ tableId: 'duiwu', key: 'type', name: '队伍站位' });
@@ -76,6 +74,12 @@ const initdb = async (db,start) => {
       await db.fields.add({ tableId: 'duiwu', key: 'ingured', name: '伤兵' });
       await db.fields.add({ tableId: 'duiwu', key: 'status', name: '状态' });
       await db.fields.add({ tableId: 'duiwu', key: 'ps', name: '体力' });
+      await db.fields.add({ tableId: 'duiwu', key: 'x', name: 'X坐标' });
+      await db.fields.add({ tableId: 'duiwu', key: 'z', name: 'Z坐标' });
+      //势力表
+      await db.fields.add({ tableId: 'domain', key: 'user_id', name: '用户id' });
+      await db.fields.add({ tableId: 'domain', key: 'status', name: '状态' });
+      await db.fields.add({ tableId: 'domain', key: 'lastTime', name: '最后重置时间' });
       await db.fields.add({ tableId: 'duiwu', key: 'x', name: 'X坐标' });
       await db.fields.add({ tableId: 'duiwu', key: 'z', name: 'Z坐标' });
 

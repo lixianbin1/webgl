@@ -4,6 +4,7 @@ const users = [ //用户表
   'name', // 名称
   'sex',  // 性别
   'age',  // 年龄
+  'color',// 颜色'
   'birthday',  // 生日
   'money',     // 金额
   'reputation',// 声望
@@ -76,6 +77,15 @@ const duiwu = [ //队伍表
   'z', // z坐标
   '[x+z]',
 ].toString()
+const domain = [ //领土
+  '++id', // id自增
+  'user_id', //用户id
+  'status',  // 状态, 1：正常, 2：免战
+  'lastTime',// 最后重置时间'
+  'x', // x坐标
+  'z', // z坐标
+  '[x+z]',
+].toString()
 export const tabletype = {
   users,
   maps,
@@ -84,6 +94,7 @@ export const tabletype = {
   daobing,
   wujiang,
   duiwu,
+  domain,
 }
 // 类型对应队伍
 export const levelType = {

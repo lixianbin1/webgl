@@ -46,11 +46,11 @@ export default class ThreeEngine {
     // 渲染器
     const renderer = new THREE.WebGLRenderer({ 
         antialias: true,  // 抗锯齿
-        alpha: true,       // 画布透明
-        preserveDrawingBuffer: true // 保存画布
+        alpha: true,      // 画布透明
+        preserveDrawingBuffer: true   // 保存画布
     });
-    renderer.shadowMap.enabled = true; // 开启阴影映射
-    renderer.setSize(width, height); // 画布尺寸
+    renderer.shadowMap.enabled = true;// 开启阴影映射
+    renderer.setSize(width, height);  // 画布尺寸
     this.domRoot.appendChild(renderer.domElement); // 挂载
     this.renderer = renderer;
 
@@ -74,10 +74,10 @@ export default class ThreeEngine {
     // 主控制器
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.screenSpacePanning = false;    //禁止y轴平移
-    controls.minPolarAngle = this.minPolarAngle;   //限制角度
+    controls.screenSpacePanning = false;         //禁止y轴平移
+    controls.minPolarAngle = this.minPolarAngle; //限制角度
     controls.maxPolarAngle = this.maxPolarAngle;
-    controls.panSpeed=0.5                   //限制速度
+    controls.panSpeed=0.5    //限制速度
     controls.rotateSpeed=0.5
     controls.enableRotate = false; //禁止旋转
     controls.mouseButtons = {
