@@ -17,7 +17,6 @@ import ThreeEngine from '@/view/Word/utils/ThreeEngine.js'
 const init = (engine) => {
 
   const disposeThree = () => {
-    console.log(111111111111)
     engine.dispose();
     console.log(engine)
   }
@@ -100,6 +99,7 @@ const init = (engine) => {
         scene.add(object);
         engine.ndRender = true;
         renderer.render(scene,camera);
+
       },undefined,function(error){
         console.log(error)
       });

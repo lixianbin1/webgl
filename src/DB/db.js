@@ -8,15 +8,13 @@ await initdb(db)
 
 /* 查询：数据库表的列表 */
 export const getTable = async({page,size}) => {
-  console.log('查询数据库表列表','tableComments')
-  return await getTableData({name:'tableComments',page,size})
+  console.log('查询数据库表列表','tableNames')
+  return await getTableData({name:'tableNames',page,size})
 }
 
 /* 添加：数据库的新表 */
-export const addTable = async ({ name, comment, keys }) => {
+export const addTable = async ({ name, comment, fields }) => {
   console.log('添加数据库表',name)
-  let schemaStr = Array.isArray(keys) ? keys.join(', ') : String(keys);
-  schemaStr = '++id,' + schemaStr;
 
   // 检查表是否存在
   const existingTables = db.tables.map(t => t.name);
@@ -39,6 +37,12 @@ export const addTable = async ({ name, comment, keys }) => {
     obj[table.name] = str;
   });
   const oldObj = { ...obj };
+
+  // 构建新表的字段字符串
+  let schemaStr = '++id';
+  fields.forEach(field => {
+    schemaStr += `,${field.key}`;
+  });
   obj[name] = schemaStr;
 
   // 创建新的数据库实例
@@ -47,7 +51,12 @@ export const addTable = async ({ name, comment, keys }) => {
     db = new Dexie('MyAppDB');
     db.version(newVersion).stores(obj);
     await db.open();
-    await db.table('tableComments').add({ name, comment, createTime: formatDate(), createUser: 'admin' });
+    await db.table('tableNames').add({ name, comment, createTime: formatDate(), createUser: 'admin' });
+    //添加字段
+    const fieldPromises = fields.map(field => {
+      return db.table('fields').add({ tableId:name, key: field.key, name: field.name });
+    });
+    await Promise.all(fieldPromises);
     return { code: 200, message: '创建成功' };
   } catch (error) {
     db = new Dexie('MyAppDB');
@@ -80,7 +89,7 @@ export const delTable = async({name,id}) => {
     db.close();
     db = new Dexie('MyAppDB');
     db.version(newVersion).stores(obj);
-    await db.table('tableComments').delete(id);
+    await db.table('tableNames').delete(id);
     return { code: 200, message: '删除成功' };
   } catch (error) {
     console.error('删除表失败:', error);
@@ -89,10 +98,8 @@ export const delTable = async({name,id}) => {
 };
 
 /* 修改: 修改数据库表 */
-export const upTable = async({oldName,name,comment,keys}) => {
+export const upTable = async({oldName,name, comment, fields}) => {
   console.log('修改数据库表',name) 
-  let schemaStr = Array.isArray(keys) ? keys.join(', ') : String(keys);
-  schemaStr = '++id,' + schemaStr;
 
   // 检查表是否存在
   console.log(db.isOpen())
@@ -117,24 +124,39 @@ export const upTable = async({oldName,name,comment,keys}) => {
   });
   const oldObj = { ...obj };
   if(oldName) obj[oldName] = undefined
-  const oldData = db.table('tableComments').where('name').equals(oldName);
+  const oldData = db.table('tableNames').where('name').equals(oldName);
+  const oldFields = db.table('fields').where('tableId').equals(oldName);
+
+  // 构建新表的字段字符串
+  let schemaStr = '++id';
+  fields.forEach(field => {
+    schemaStr += `,${field.key}`;
+  });
+  obj[name] = schemaStr;
   obj[name] = schemaStr;
 
   console.log(obj)
   // 创建新的数据库实例
+
   try {
     oldData.delete()
+    oldFields.delete()
     db.close();
     db = new Dexie('MyAppDB');
     db.version(newVersion).stores(obj);
     await db.open();
-    await db.table('tableComments').add({ name, comment, createTime: formatDate(), createUser: 'admin' });
+    await db.table('tableNames').add({ name, comment, createTime: formatDate(), createUser: 'admin' });
+    //添加字段
+    const fieldPromises = fields.map(field => {
+      return db.table('fields').add({ tableId:name, key: field.key, name: field.name });
+    });
+    await Promise.all(fieldPromises);
+
     return { code: 200, message: '修改成功' };
   } catch (error) {
     db = new Dexie('MyAppDB');
     db.version(Version).stores(oldObj);
     await db.open();
-    
     return { code: 500, message: '修改失败' };
   }
 }
@@ -159,15 +181,13 @@ export async function exportDB() {
 export const getTableData = async({name,page=1,size=Infinity}) => {
     console.log('查询单个表数据',name)
     let table = db.table(name);
-    let indexes = table.schema.indexes
+    const fields = await db.table('fields').where('tableId').equals(name).toArray();
     let columes = [{label:'ID',prop:'id',}] //表头
-    if (indexes.length > 0) {
-      indexes.forEach(index => {
-        if (!index.name.includes('[')) {
-          columes.push({label:index.name, prop:index.name,})
-        }
-      });
-    }
+    fields.forEach(index => {
+      if (!index.name.includes('[')) {
+        columes.push({label:index.name, prop:index.key,})
+      }
+    });
     if (size === Infinity) { //查询所有数据
       const res = await table.toArray();
       return {code:200,data:res,columes}

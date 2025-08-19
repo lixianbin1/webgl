@@ -1,15 +1,5 @@
 import {db} from './db.js';
 
-/* 查询表数据*/
-// export const queryXZData = async({x,z})=>{
-//   try {
-//     const result = await db.table('maps').where('[x+z]').equals([x,z]).first();
-//     return result;
-//   } catch (error) {
-//     return { code: 500, message: '查询失败',error };
-//   }
-// }
-
 export const queryXZData = async ({ x, z, range }) => {
   try {
       console.log('查询范围:', x, z, range);

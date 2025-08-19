@@ -1,5 +1,5 @@
 <template>
-  <div class="table-box" style="flex: 1;">
+  <div class="table-box">
     <!--- 搜索框 -- -->
     <el-form :inline="true" class="form-inline" style="text-align: end;">
       <el-form-item>
@@ -10,14 +10,14 @@
     </el-form>
 
     <!--- 表格 -- -->
-    <el-table id="Tables" :data="Tables" style="width: 100%" @row-click="rowClick">
+    <el-table id="Tables" :data="Tables" style="width: 100%;flex:1" @row-click="rowClick">
       <el-table-column label="ID" prop="id" width="80"/>
-      <el-table-column label="name" prop="name"/>
-      <el-table-column label="comment" prop="comment"/>
-      <el-table-column label="createUser" prop="createUser"/>
-      <el-table-column label="createTime" prop="createTime" width="180"/>
+      <el-table-column label="表名" prop="name"/>
+      <el-table-column label="介绍" prop="comment"/>
+      <el-table-column label="创建人" prop="createUser"/>
+      <el-table-column label="创建时间" prop="createTime" width="180"/>
       
-      <el-table-column label="action" width="180">
+      <el-table-column label="操作" width="100" fixed="right">
         <template #default="scope">
           <el-button link type="primary" @click="deleteClick($event,scope.row)">删除</el-button>
           <el-button link type="primary" @click="editClick($event,scope.row)" size="small">编辑</el-button>
@@ -52,12 +52,14 @@
           <el-input v-model="drawerform.comment" placeholder="请输入说明字段"/>
         </el-form-item>
         <el-form-item label="表字段">
-          <el-input-tag
-            v-model="drawerform.keys"
-            trigger="Space"
-            placeholder="请输入字段，以空隔隔开"
-          />
+          <el-button type="primary" @click="addField">添加字段</el-button>
+          <div v-for="(field, index) in drawerform.fields" :key="index" class="field-item">
+            <el-input v-model="field.key" placeholder="字段名" style="width: 40%" />
+            <el-input v-model="field.name" placeholder="字段中文注释" style="width: 40%" />
+            <el-button type="danger" @click="removeField(index)">删除</el-button>
+          </div>
         </el-form-item>
+
       </el-form>
     </template>
     <template #footer>
@@ -87,7 +89,12 @@ const pageChange = (val) => {
   pagination.page = val
   getData()
 }
-
+const addField = () => {
+  drawerform.fields.push({ key: '', name: '' });
+};
+const removeField = (index) => {
+  drawerform.fields.splice(index, 1);
+};
 // 查询表格数据
 const Tables = ref([])
 const getData = async() => {
@@ -110,18 +117,26 @@ const deleteClick = async(event,row) => { // 删除
     ElMessage.error(data.message)
   }
 }
+
+const rowData = ref(null)
 const editClick = async(event,row) => {  //编辑
   event.stopPropagation();
+  rowData.value = row
   const tables = await getTableData({name:row.name,page:1, size: 10})
   drawer.value = true
   drawerType.value = 'edit'
   drawerform.name = row.name
   drawerform.oldName = row.name
   drawerform.comment = row.comment
-  let keys = tables.columes
+  let fields = tables.columes
   .filter(item => item.prop !== 'id')
-  .map(item => item.prop);
-  drawerform.keys = keys
+  .map(item =>{ 
+    return {
+      key: item.prop,
+      name: item.label
+    }
+  });
+  drawerform.fields = fields
 }
 
 const rowClick = (row) => { 
@@ -134,7 +149,7 @@ const drawerType = ref('add')
 const drawerform = reactive({
   name:'',
   comment:'',
-  keys:[],
+  fields:[],
 })
 const openDrawer = () => {
   drawer.value = true
@@ -150,35 +165,36 @@ const closeDrawer = () => {
     drawerType.value = 'add'
     drawerform.name = ''
     drawerform.comment = ''
-    drawerform.keys = []
+    drawerform.fields = []
   }, 100)
 }
 const confirmClick = async() => {
   if(drawerType.value === 'add'){
-  const data = await addTable({
-    name:drawerform.name,
-    comment:drawerform.comment,
-    keys:drawerform.keys,
-  })
-  if(data.code == 200){
-    ElMessage.success('添加成功')
-    pageChange()
+    const data = await addTable({
+      name:drawerform.name,
+      comment:drawerform.comment,
+      fields:drawerform.fields,
+    })
+    if(data.code == 200){
+      ElMessage.success('添加成功')
+      pageChange()
+    }else{
+      ElMessage.error(data.message)
+    }
   }else{
-    ElMessage.error(data.message)
-  }
-  }else{
-  const data = await upTable({
-    oldName:drawerform.oldName,
-    name:drawerform.name,
-    comment:drawerform.comment,
-    keys:drawerform.keys,
-  })
-  if(data.code == 200){
-    ElMessage.success('编辑成功')
-    pageChange()
-  }else{
-    ElMessage.error(data.message)
-  }
+    const data = await upTable({
+      oldName:drawerform.oldName,
+      name:drawerform.name,
+      comment:drawerform.comment,
+      fields:drawerform.fields,
+    })
+    if(data.code == 200){
+      ElMessage.success('编辑成功')
+      pageChange()
+      rowClick(rowData.value)
+    }else{
+      ElMessage.error(data.message)
+    }
   }
   closeDrawer()
 }
@@ -188,3 +204,15 @@ onBeforeMount(async () => {
   getData()
 })
 </script>
+
+<style scoped>
+.table-box{
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  padding: 20px;
+  border-radius: 10px;
+}
+</style>

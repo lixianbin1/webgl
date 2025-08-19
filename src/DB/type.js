@@ -24,12 +24,18 @@ const maps = [ //地图表
   'z', // z坐标
   '[x+z]'
 ].toString()
-const tableComments = [ //表注释
+const tableNames = [ //表介绍
   '++id', // id自增
   'name', // 表名
   'comment', // 注释
   'createTime', // 创建时间
   'createUser'  // 创建用户
+].toString()
+const fields = [ //字段表
+  '++id', // id自增
+  'tableId', // 表id
+  'key', // 字段名
+  'name' // 字段注释
 ].toString()
 const daobing = [ //兵种表
   '++id', // id自增
@@ -73,7 +79,8 @@ const duiwu = [ //队伍表
 export const tabletype = {
   users,
   maps,
-  tableComments,
+  tableNames,
+  fields,
   daobing,
   wujiang,
   duiwu,

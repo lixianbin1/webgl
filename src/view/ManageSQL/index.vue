@@ -11,9 +11,9 @@
         
       </el-form-item>
     </el-form>
-    <el-table :data="Tables" style="width: 100%" >
+    <el-table :data="Tables" style="width: 100%;height:100%" >
       <el-table-column v-for="row in column" :key="row.prop" :label="row.label" :prop="row.prop"/>
-      <el-table-column v-if="column.length" label="action" width="180" >
+      <el-table-column v-if="column.length" label="action" width="100" fixed="right">
         <template #default="scope">
           <el-button link type="primary" @click = "deleteData(scope.row)">删除</el-button>
           <el-button link type="primary"  size="small" @click="editData(scope.row)">编辑</el-button>
@@ -40,12 +40,12 @@
     </template>
     <template #default>
       <el-form :model="Datadrawerform" label-width="auto" style="max-width: 600px">
-        <el-form-item :label="label" v-for="(value,label) in Datadrawerform" :key="label">
-          <template v-if="label=='id'">
-            <span>{{ value }}</span>
-          </template>
-          <el-input v-else v-model="Datadrawerform[label]"  placeholder="请输入"/>
-        </el-form-item>
+        <template v-for="item in column" :key="item.prop">
+          <el-form-item :label="item.label" v-if="item.prop!=='id'">
+            <el-input v-model="Datadrawerform[item.prop]"  placeholder="请输入"/>
+          </el-form-item>
+        </template>
+
       </el-form>
     </template>
     <template #footer>
@@ -174,12 +174,16 @@ const pageChange = (val) => {
 
 <style scoped>
 #table{
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  height: calc(100vh - 100px);
 }
 .table-box{
-  flex: 1;
+  height: 50%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  box-sizing: border-box;
+  padding: 20px;
+  border-radius: 10px;
 }
 ::v-deep #Tables tr{
   cursor: pointer;

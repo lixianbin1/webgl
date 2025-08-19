@@ -19,11 +19,65 @@ const initdb = async (db,start) => {
       // 添加用户数据
       await db.users.add({ u_id:'001',name: 'admin', sex: '男', age: '18', birthday: '2025/08/11 09:00:00', money: '1000', reputation: '1000',x:'0', z:'0' })
       // 添加表注释
-      await db.tableComments.add({ name: 'users', comment: '用户表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
-      await db.tableComments.add({ name: 'maps', comment: '地图表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
-      await db.tableComments.add({ name: 'daobing', comment: '兵种表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
-      await db.tableComments.add({ name: 'wujiang', comment: '武将',createTime:'2025/08/11 09:00:00',createUser:'admin' });
-      await db.tableComments.add({ name: 'duiwu', comment: '队伍',createTime:'2025/08/11 09:00:00',createUser:'admin' });
+      await db.tableNames.add({ name: 'users', comment: '用户表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
+      await db.tableNames.add({ name: 'maps', comment: '地图表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
+      await db.tableNames.add({ name: 'daobing', comment: '道兵表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
+      await db.tableNames.add({ name: 'wujiang', comment: '道兵仓库',createTime:'2025/08/11 09:00:00',createUser:'admin' });
+      await db.tableNames.add({ name: 'duiwu', comment: '队伍组成',createTime:'2025/08/11 09:00:00',createUser:'admin' });
+      // 用户表
+      await db.fields.add({ tableId: 'users', key: 'u_id', name: '用户ID' });
+      await db.fields.add({ tableId: 'users', key: 'name', name: '名称' });
+      await db.fields.add({ tableId: 'users', key: 'sex', name: '性别' });
+      await db.fields.add({ tableId: 'users', key: 'age', name: '年龄' });
+      await db.fields.add({ tableId: 'users', key: 'birthday', name: '生日' });
+      await db.fields.add({ tableId: 'users', key: 'money', name: '金额' });
+      await db.fields.add({ tableId: 'users', key: 'reputation', name: '声望' });
+      await db.fields.add({ tableId: 'users', key: 'x', name: 'X坐标' });
+      await db.fields.add({ tableId: 'users', key: 'z', name: 'Z坐标' });
+
+      // 地图表
+      await db.fields.add({ tableId: 'maps', key: 'type', name: '地块类型' });
+      await db.fields.add({ tableId: 'maps', key: 'typeName', name: '类型名称' });
+      await db.fields.add({ tableId: 'maps', key: 'level', name: '等级' });
+      await db.fields.add({ tableId: 'maps', key: 'belong', name: '归属' });
+      await db.fields.add({ tableId: 'maps', key: 'monsters', name: '野怪' });
+      await db.fields.add({ tableId: 'maps', key: 'stationed', name: '驻扎' });
+      await db.fields.add({ tableId: 'maps', key: 'lastTime', name: '最后重置时间' });
+      await db.fields.add({ tableId: 'maps', key: 'x', name: 'X坐标' });
+      await db.fields.add({ tableId: 'maps', key: 'z', name: 'Z坐标' });
+      // 兵种表
+      await db.fields.add({ tableId: 'daobing', key: 'u_id', name: 'ID' });
+      await db.fields.add({ tableId: 'daobing', key: 'name', name: '名称' });
+      await db.fields.add({ tableId: 'daobing', key: 'rank', name: '等级' });
+      await db.fields.add({ tableId: 'daobing', key: 'arm', name: '兵种' });
+      await db.fields.add({ tableId: 'daobing', key: 'ack', name: '攻击' });
+      await db.fields.add({ tableId: 'daobing', key: 'defense', name: '防御' });
+      await db.fields.add({ tableId: 'daobing', key: 'speed', name: '速度' });
+      await db.fields.add({ tableId: 'daobing', key: 'spell', name: '法术' });
+      await db.fields.add({ tableId: 'daobing', key: 'range', name: '射程' });
+      await db.fields.add({ tableId: 'daobing', key: 'modela', name: '主动' });
+      await db.fields.add({ tableId: 'daobing', key: 'modelb', name: '被动' });
+      await db.fields.add({ tableId: 'daobing', key: 'modelc', name: '指挥' });
+
+      // 武将表
+      await db.fields.add({ tableId: 'wujiang', key: 'name', name: '名称' });
+      await db.fields.add({ tableId: 'wujiang', key: 'u_id', name: 'ID' });
+      await db.fields.add({ tableId: 'wujiang', key: 'user_id', name: '所属用户' });
+      await db.fields.add({ tableId: 'wujiang', key: 'daobing_id', name: '卡池表UID' });
+      await db.fields.add({ tableId: 'wujiang', key: 'level', name: '等级' });
+      await db.fields.add({ tableId: 'wujiang', key: 'exp', name: '经验' });
+
+      // 队伍表
+      await db.fields.add({ tableId: 'duiwu', key: 'name', name: '队伍名称' });
+      await db.fields.add({ tableId: 'duiwu', key: 'type', name: '队伍站位' });
+      await db.fields.add({ tableId: 'duiwu', key: 'team', name: '队伍编号' });
+      await db.fields.add({ tableId: 'duiwu', key: 'wujiang_id', name: '武将表UID' });
+      await db.fields.add({ tableId: 'duiwu', key: 'troops', name: '兵力' });
+      await db.fields.add({ tableId: 'duiwu', key: 'ingured', name: '伤兵' });
+      await db.fields.add({ tableId: 'duiwu', key: 'status', name: '状态' });
+      await db.fields.add({ tableId: 'duiwu', key: 'ps', name: '体力' });
+      await db.fields.add({ tableId: 'duiwu', key: 'x', name: 'X坐标' });
+      await db.fields.add({ tableId: 'duiwu', key: 'z', name: 'Z坐标' });
 
       // 添加N兵种数据
       await db.daobing.add({ name: '鬼', u_id: 'N_190829001',rank:"N",ack:'10',defense:'10',speed:'10',spell:'10',range:'3',modela:[], modelb:[], modelc:[], arm:'诡'});
