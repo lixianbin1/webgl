@@ -1,5 +1,6 @@
 import Dexie from 'dexie';
 import initdb from './initdb.js'
+import {formatDate} from '@/utils/common.js'
 // 定义数据库和表结构
 export let db = new Dexie('MyAppDB');
 
@@ -233,18 +234,4 @@ export const exportTableData = async(name) => {
   const blob = new Blob([jsonData], { type: 'application/json' });
   console.log(jsonData);
   return blob;
-}
-
-/* 函数集合 */
-// 时间格式化
-export function formatDate(format = 'YYYY/MM/DD hh:mm:ss',date = new Date()) {
-  const map = {
-    YYYY: date.getFullYear(),
-    MM: String(date.getMonth() + 1).padStart(2, '0'),
-    DD: String(date.getDate()).padStart(2, '0'),
-    hh: String(date.getHours()).padStart(2, '0'),
-    mm: String(date.getMinutes()).padStart(2, '0'),
-    ss: String(date.getSeconds()).padStart(2, '0'),
-  };
-  return format.replace(/YYYY|MM|DD|hh|mm|ss/g, (match) => map[match]);
 }

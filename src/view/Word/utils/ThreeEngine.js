@@ -137,9 +137,6 @@ export default class ThreeEngine {
       this.renderer.render(this.scene, this.mini_camera);
       this.renderer.setScissorTest(false);
 
-      // 计算焦点坐标
-
-      // initMap.call(this, tarX, tarZ);
       // 计算焦点坐标:检查 tarX 和 tarZ 是否变化，优化渲染
       const tarX = Math.floor(target.x / this.GridSize);
       const tarZ = Math.floor(target.z / this.GridSize);

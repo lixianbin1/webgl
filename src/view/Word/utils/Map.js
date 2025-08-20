@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 // import { tileMap } from './MapData.js';
 import { queryXZData } from '@/DB/maps.js';
-// 初始化地图
+
+/*渲染地图*/
 export async function initMap(cx = 0, cz = 0){ 
     const length = this.size / 2;
     const dataMap = await queryXZData({x: cx, z: cz,range: length})

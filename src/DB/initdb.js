@@ -1,6 +1,7 @@
-import {mapType,tabletype,levelType} from './type.js';
-import {battleing} from './battle.js';
-const initdb = async (db,start) => { 
+import {mapType,tabletype} from './type.js';
+import {formatDate} from '@/utils/common.js'
+/*初始化数据库*/
+const initdb = async (db) => { 
   try {
     // 尝试打开现有数据库
     await db.open(); 
@@ -15,7 +16,6 @@ const initdb = async (db,start) => {
       db.version(0.1).stores(tabletype)
       console.log("新创建数据库版本:", db.verno, db.tables);
       await db.open();
-      await generateMapsData(db,5);
       // 添加用户数据
       await db.users.add({ u_id:'001',name: 'admin', sex: '男', age: '18',color:'#6fcefd', birthday: '2025/08/11 09:00:00', money: '1000', reputation: '1000',x:'0', z:'0' })
       // 添加表注释
@@ -24,6 +24,7 @@ const initdb = async (db,start) => {
       await db.tableNames.add({ name: 'daobing', comment: '道兵表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
       await db.tableNames.add({ name: 'wujiang', comment: '道兵仓库',createTime:'2025/08/11 09:00:00',createUser:'admin' });
       await db.tableNames.add({ name: 'duiwu', comment: '队伍组成',createTime:'2025/08/11 09:00:00',createUser:'admin' });
+      await db.tableNames.add({ name: 'domain', comment: '领地表',createTime:'2025/08/11 09:00:00',createUser:'admin' });
       // 用户表
       await db.fields.add({ tableId: 'users', key: 'u_id', name: '用户ID' });
       await db.fields.add({ tableId: 'users', key: 'name', name: '名称' });
@@ -80,8 +81,8 @@ const initdb = async (db,start) => {
       await db.fields.add({ tableId: 'domain', key: 'user_id', name: '用户id' });
       await db.fields.add({ tableId: 'domain', key: 'status', name: '状态' });
       await db.fields.add({ tableId: 'domain', key: 'lastTime', name: '最后重置时间' });
-      await db.fields.add({ tableId: 'duiwu', key: 'x', name: 'X坐标' });
-      await db.fields.add({ tableId: 'duiwu', key: 'z', name: 'Z坐标' });
+      await db.fields.add({ tableId: 'domain', key: 'x', name: 'X坐标' });
+      await db.fields.add({ tableId: 'domain', key: 'z', name: 'Z坐标' });
 
       // 添加N兵种数据
       await db.daobing.add({ name: '鬼', u_id: 'N_190829001',rank:"N",ack:'10',defense:'10',speed:'10',spell:'10',range:'3',modela:[], modelb:[], modelc:[], arm:'诡'});
@@ -108,17 +109,23 @@ const initdb = async (db,start) => {
       await db.wujiang.add({ name: '蛇',u_id:'D_190829002',user_id:'001',daobing_id: 'N_190829002',level:'10',exp:'10'});
       await db.wujiang.add({ name: '狼',u_id:'D_190829001',user_id:'001',daobing_id: 'N_190829003',level:'10',exp:'12'});
       // 添加队伍数据
-      await db.duiwu.add({ name: '鬼', type:'3',team:'1',wujiang_id: 'D_190829003',troops:'1000',ingured:'0',status:'1',ps:'100'});
-      await db.duiwu.add({ name: '蛇', type:'2',team:'1',wujiang_id: 'D_190829002',troops:'1000',ingured:'0',status:'1',ps:'100'});
-      await db.duiwu.add({ name: '狼', type:'1',team:'1',wujiang_id: 'D_190829001',troops:'1000',ingured:'0',status:'1',ps:'100'});
+      await db.duiwu.add({ name: '鬼', type:'3',team:'1',wujiang_id: 'D_190829003',troops:'1000',ingured:'0',status:'1',ps:'100',x:'0',z:'0'});
+      await db.duiwu.add({ name: '蛇', type:'2',team:'1',wujiang_id: 'D_190829002',troops:'1000',ingured:'0',status:'1',ps:'100',x:'0',z:'0'});
+      await db.duiwu.add({ name: '狼', type:'1',team:'1',wujiang_id: 'D_190829001',troops:'1000',ingured:'0',status:'1',ps:'100',x:'0',z:'0'});
+
+      initmapData(db)
+      initDomain(db)
+
+
     }
   }
   // battleing()
 }
 
-// 生成地图数据
-export const generateMapsData = async (db,length = 3) => {
+/*初始化地图数据*/
+export const initmapData = async (db,length = 3) => {
   try {
+    await db.table('maps').clear();
     const halfSize = Math.floor(length / 2);
     // 生成地图数据
     const mapsData = [];
@@ -142,10 +149,34 @@ export const generateMapsData = async (db,length = 3) => {
     }
 
     // 批量插入到 maps 表中
-    await db.maps.bulkAdd(mapsData);
+    await db.table('maps').bulkAdd(mapsData);
   } catch (error) {
     console.error("生成 Maps 数据时出错:", error);
   }
 };
+/*初始化领地数据*/
+export const initDomain = async (db) => { 
+  const users = await db.table('users').toArray();
+  for (const user of users) { 
+    // 计算查询范围
+    const minX = user.x - 1;
+    const maxX = user.x + 1;
+    const minZ = user.z - 1;
+    const maxZ = user.z + 1;
+    console.log(minX);
+    console.log(await db.table('maps').toArray())
+    // 查询数据库，获取范围内的所有数据
+    const results = await db.table('maps')
+    .where('[x+z]')
+    .between([minX, minZ], [maxX, maxZ])
+    .toArray();
 
+    // 将结果存入 Map
+    await db.table('domain').where('user_id').equals(user.u_id).delete();
+    results.forEach(async(result) => {
+      console.log(result);
+      db.table('domain').add({ user_id:user.u_id, status:'1', lastTime: formatDate(), x:result.x,z:result.z });
+    });
+  }
+};
 export default initdb;

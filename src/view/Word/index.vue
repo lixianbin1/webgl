@@ -12,6 +12,8 @@ import {MTLLoader} from 'three/examples/jsm/loaders/MTLLoader.js';
 import {OBJLoader} from 'three/addons/loaders/OBJLoader.js';
 import * as THREE from 'three';
 import ThreeEngine from '@/view/Word/utils/ThreeEngine.js'
+import{db} from '@/DB/db.js'
+import{initmapData,initDomain} from '@/DB/initdb.js'
 
 
 const init = (engine) => {
@@ -104,14 +106,17 @@ const init = (engine) => {
         console.log(error)
       });
     });
-
 }
 const mainViewport = ref(null);
 const miniViewport  = ref(null);
 
+
+
+  
 onMounted(() => { 
   const engine = new ThreeEngine(mainViewport.value, miniViewport.value);
   init(engine)
+  
 })
 
 </script>
